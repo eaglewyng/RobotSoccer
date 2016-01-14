@@ -5,10 +5,21 @@
 %   2/11/2014 - R. Beard
 %   2/18/2014 - R. Beard
 %   2/24/2014 - R. Beard
+%   1/4/2016  - R. Beard
 %
 
-function v_c=controller_home_full_state(uu,P)
+% this first function catches simulink errors and displays the line number
+function v_c=controller_away(uu,P)
+    try
+        v_c=controller_away_(uu,P);
+    catch e
+        msgString = getReport(e);
+        fprintf(2,'\n%s\n',msgString);
+        rethrow(e);
+    end
+end
 
+function v_c=controller_away_(uu,P)
     % process inputs to function
     % robots - own team
     for i=1:P.num_robots,
@@ -30,7 +41,8 @@ function v_c=controller_home_full_state(uu,P)
     t      = uu(1+NN);
 
     % robot #1 positions itself behind ball and rushes the goal.
-    v1 = play_rush_goal(robot(:,1), ball, P);
+    %v1 = play_rush_goal(robot(:,1), ball, P);
+    v1 = skill_follow_ball_on_line(robot(:,1), ball, -P.field_width/3, P);
  
     % robot #2 stays on line, following the ball, facing the goal
     v2 = skill_follow_ball_on_line(robot(:,2), ball, -2*P.field_width/3, P);
@@ -51,7 +63,6 @@ end
 % plays at a lower level.  For example, switching between offense and
 % defense would be a strategy.
 function v = play_rush_goal(robot, ball, P)
-  
   % normal vector from ball to goal
   n = P.goal-ball;
   n = n/norm(n);

@@ -9,9 +9,9 @@
 %
 
 % this first function catches simulink errors and displays the line number
-function v_c=controller_away(uu,P)
+function v_c=controller_home(uu,P)
     try
-        v_c=controller_away_(uu,P);
+        v_c=controller_home_(uu,P);
     catch e
         msgString = getReport(e);
         fprintf(2,'\n%s\n',msgString);
@@ -19,7 +19,9 @@ function v_c=controller_away(uu,P)
     end
 end
 
-function v_c=controller_away_(uu,P)
+% main control function
+function v_c=controller_home_(uu,P)
+
     % process inputs to function
     % robots - own team
     for i=1:P.num_robots,
@@ -41,11 +43,10 @@ function v_c=controller_away_(uu,P)
     t      = uu(1+NN);
 
     % robot #1 positions itself behind ball and rushes the goal.
-    %v1 = play_rush_goal(robot(:,1), ball, P);
-    v1 = skill_follow_ball_on_line(robot(:,1), ball, -P.field_width/3, P);
+    v1 = play_rush_goal(robot(:,1), ball, P);
  
     % robot #2 stays on line, following the ball, facing the goal
-    v2 = skill_follow_ball_on_line(robot(:,2), ball, -2*P.field_width/3, P);
+    v2 = skill_guard_goal(robot(:,2), ball, -2*P.field_width/3, P);
 
     
     % output velocity commands to robots
@@ -63,6 +64,7 @@ end
 % plays at a lower level.  For example, switching between offense and
 % defense would be a strategy.
 function v = play_rush_goal(robot, ball, P)
+  
   % normal vector from ball to goal
   n = P.goal-ball;
   n = n/norm(n);
@@ -115,6 +117,30 @@ function v=skill_go_to_point(robot, point, P)
     omega = -P.control_k_phi*(robot(3) - theta_d); 
     
     v = [vx; vy; omega];
+end
+
+function v=skill_guard_goal(robot, ball, x_pos, P)
+    % control x position to stay on current line
+    vx = -P.control_k_vx*(robot(1)-x_pos);
+    
+    % control y position to match the ball's y-position if it is within the
+    % goal's bounds
+    topGoalY = P.goal_width / 2;
+    bottomGoalY = -1 * P.goal_width / 2;
+    if ball(2) >= topGoalY,
+        vy = -P.control_k_vy * (robot(2)-topGoalY);
+    elseif ball(2) <= bottomGoalY,
+        vy = -P.control_k_vy * (robot(2)-bottomGoalY);
+    else
+        vy = -P.control_k_vy*(robot(2)-ball(2));
+    end
+    
+    % control angle to -pi/2
+    theta_d = atan2(P.goal(2)-robot(2), P.goal(1)-robot(1));
+    omega = -P.control_k_phi*(robot(3) - theta_d); 
+    
+    v = [vx; vy; omega];
+
 end
 
 

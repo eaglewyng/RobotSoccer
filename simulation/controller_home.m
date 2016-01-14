@@ -20,50 +20,10 @@ function v_c=controller_home(uu,P)
 end
 
 % main control function
-function v_c=controller_home_(uu,P)
-
-    % process inputs to function
-    % robots - own team
-    for i=1:P.num_robots,
-        robot(:,i)   = uu(1+3*(i-1):3+3*(i-1));
-    end
-    NN = 3*P.num_robots;
-    % robots - opponent
-    for i=1:P.num_robots,
-        opponent(:,i)   = uu(1+3*(i-1)+NN:3+3*(i-1)+NN);
-    end
-    NN = NN + 3*P.num_robots;
-    % ball
-    ball = [uu(1+NN); uu(2+NN)];
-    NN = NN + 2;
-    % score: own team is score(1), opponent is score(2)
-    score = [uu(1+NN); uu(2+NN)];
-    NN = NN + 2;
-    % current time
-    t      = uu(1+NN);
+function v_c=controller_home_(uu,P)   
     
+    v_c = strategy_default(uu, P);
     
-    
-    % robot #1 positions itself behind ball and rushes the goal.
-    if(ball(1) < 0 )
-        v1 = skill_between_ball_and_goal(robot(:,1), ball, P);
-    else
-        v1 = play_rush_goal(robot(:,1), ball, P);
-    end
-    
- 
-    % robot #2 stays on line, following the ball, facing the goal
-    if(ball(1) < 0)
-        v2 = skill_guard_goal(robot(:,2), ball, -P.field_width , P);
-    else
-        v2 = skill_follow_ball_on_line(robot(:,2), ball, 0 , P);
-    end
-
-    
-    % output velocity commands to robots
-    v1 = utility_saturate_velocity(v1,P);
-    v2 = utility_saturate_velocity(v2,P);
-    v_c = [v1; v2];
 end
 
 %-----------------------------------------
@@ -88,6 +48,121 @@ function v = play_rush_goal(robot, ball, P)
       v = skill_go_to_point(robot, position, P);
   end
 
+end
+
+function v_c=strategy_default(uu,P)
+    % process inputs to function
+    % robots - own team
+    for i=1:P.num_robots,
+        robot(:,i)   = uu(1+3*(i-1):3+3*(i-1));
+    end
+    NN = 3*P.num_robots;
+    % robots - opponent
+    for i=1:P.num_robots,
+        opponent(:,i)   = uu(1+3*(i-1)+NN:3+3*(i-1)+NN);
+    end
+    NN = NN + 3*P.num_robots;
+    % ball
+    ball = [uu(1+NN); uu(2+NN)];
+    NN = NN + 2;
+    % score: own team is score(1), opponent is score(2)
+    score = [uu(1+NN); uu(2+NN)];
+    NN = NN + 2;
+    % current time
+    t      = uu(1+NN);
+    % robot #1 positions itself behind ball and rushes the goal.
+    if(ball(1) < 0 )
+
+        v1 = play_rush_goal(robot(:,1), ball, P);
+        %v1 = skill_between_ball_and_goal(robot(:,1), ball, P);
+    else
+        v1 = play_rush_goal(robot(:,1), ball, P);
+    end
+
+
+    % robot #2 stays on line, following the ball, facing the goal
+    if(ball(1) < 0)
+        v2 = skill_guard_goal(robot(:,2), ball, -P.field_width + .05 , P);
+    else
+        v2 = skill_follow_ball_on_line(robot(:,2), ball, 0 , P);
+    end
+
+
+    
+    % output velocity commands to robots
+    v1 = utility_saturate_velocity(v1,P);
+    v2 = utility_saturate_velocity(v2,P);
+    v_c = [v1; v2];
+end
+
+function v_c=strategy_intelligent(uu,P)
+    % process inputs to function
+    % robots - own team
+    for i=1:P.num_robots,
+        robot(:,i)   = uu(1+3*(i-1):3+3*(i-1));
+    end
+    NN = 3*P.num_robots;
+    % robots - opponent
+    for i=1:P.num_robots,
+        opponent(:,i)   = uu(1+3*(i-1)+NN:3+3*(i-1)+NN);
+    end
+    NN = NN + 3*P.num_robots;
+    % ball
+    ball = [uu(1+NN); uu(2+NN)];
+    NN = NN + 2;
+    % score: own team is score(1), opponent is score(2)
+    score = [uu(1+NN); uu(2+NN)];
+    NN = NN + 2;
+    % current time
+    t      = uu(1+NN);
+
+    robotMode = 0;
+    %0 = Robot 1 on Offense, Robot 2 on Defense
+    %1 = Robot 1 on Defense, Robot 2 on Offense
+    %2 = Robot 1 on Offense, Robot 2 on Offense
+    %3 = Robot 1 on Defense, Robot 2 on Defense
+    
+    robot1 = robot(:,1);
+    distanceR1 = sqrt((robot1(1)-ball(1))^2 + (robot1(2) - ball(2))^2);
+    
+    robot2 = robot(:,2);
+    distanceR2 = sqrt((robot2(1)-ball(1))^2 + (robot2(2) - ball(2))^2);
+    
+    %should we change modes?
+    if(distanceR1 < .01)
+        robotMode = 0;
+    elseif(ball(1) < 0 && distanceR2 < .01)
+        robotMode = 1;
+    elseif(ball(1) > 0) %% && (distanceR1 < .01 || distanceR2 < .01))
+        robotMode = 2;
+    else
+        robotMode = 0;
+    end
+    
+    if (robotMode == 0)
+    % robot #1 positions itself behind ball and rushes the goal.
+        if(ball(1) < 0 )
+
+            v1 = play_rush_goal(robot(:,1), ball, P);
+            %v1 = skill_between_ball_and_goal(robot(:,1), ball, P);
+        else
+            v1 = play_rush_goal(robot(:,1), ball, P);
+        end
+
+
+        % robot #2 stays on line, following the ball, facing the goal
+        if(ball(1) < 0)
+            v2 = skill_guard_goal(robot(:,2), ball, -P.field_width + .05 , P);
+        else
+            v2 = skill_follow_ball_on_line(robot(:,2), ball, 0 , P);
+        end
+    end
+
+    
+    % output velocity commands to robots
+    v1 = utility_saturate_velocity(v1,P);
+    v2 = utility_saturate_velocity(v2,P);
+    v_c = [v1; v2];
 end
 
 %-----------------------------------------
@@ -148,7 +223,7 @@ function v=skill_guard_goal(robot, ball, x_pos, P)
     end
     
     % control angle to -pi/2
-    theta_d = atan2(P.goal(2)-robot(2), P.goal(1)-robot(1));
+    theta_d = atan2(ball(2) - robot(2), ball(1)-robot(1));
     omega = -P.control_k_phi*(robot(3) - theta_d); 
     
     v = [vx; vy; omega];
@@ -164,11 +239,14 @@ function v=skill_between_ball_and_goal(robot, ball, P)
     
     
 %     % control angle to -pi/2
-%     theta_d = atan2(P.goal(2)-robot(2), P.goal(1)-robot(1));
-%     omega = -P.control_k_phi*(robot(3) - theta_d); 
+    
 %     
-    v=skill_go_to_point(robot, point, P);
-
+    vtemp = skill_go_to_point(robot, point, P);
+%     theta_d = atan2(ball(2), ball(1));
+%     omega = -P.control_k_phi*(robot(3) - theta_d); 
+    theta_d = atan2(ball(2) - robot(2), ball(1)-robot(1));
+    omega = -P.control_k_phi*(robot(3) - theta_d); 
+    v = [vtemp(1); vtemp(2); omega];
 end
 
 

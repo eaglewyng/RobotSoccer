@@ -45,7 +45,12 @@ function v_c=controller_home_(uu,P)
     
     
     % robot #1 positions itself behind ball and rushes the goal.
-    v1 = play_rush_goal(robot(:,1), ball, P);
+    if(ball(1) < 0 )
+        v1 = skill_between_ball_and_goal(robot(:,1), ball, P);
+    else
+        v1 = play_rush_goal(robot(:,1), ball, P);
+    end
+    
  
     % robot #2 stays on line, following the ball, facing the goal
     if(ball(1) < 0)
@@ -147,6 +152,22 @@ function v=skill_guard_goal(robot, ball, x_pos, P)
     omega = -P.control_k_phi*(robot(3) - theta_d); 
     
     v = [vx; vy; omega];
+
+end
+
+function v=skill_between_ball_and_goal(robot, ball, P)
+
+    
+    % control y position to match the ball's y-position if it is within the
+    % goal's bounds
+    point = [-P.field_length/2 + 2/3*(abs(P.field_length/2) - abs(ball(1))), 2/3*ball(2)];
+    
+    
+%     % control angle to -pi/2
+%     theta_d = atan2(P.goal(2)-robot(2), P.goal(1)-robot(1));
+%     omega = -P.control_k_phi*(robot(3) - theta_d); 
+%     
+    v=skill_go_to_point(robot, point, P);
 
 end
 

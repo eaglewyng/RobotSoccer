@@ -41,12 +41,18 @@ function v_c=controller_home_(uu,P)
     NN = NN + 2;
     % current time
     t      = uu(1+NN);
-
+    
+    
+    
     % robot #1 positions itself behind ball and rushes the goal.
     v1 = play_rush_goal(robot(:,1), ball, P);
  
     % robot #2 stays on line, following the ball, facing the goal
-    v2 = skill_guard_goal(robot(:,2), ball, -2*P.field_width/3, P);
+    if(ball(1) < 0)
+        v2 = skill_guard_goal(robot(:,2), ball, -P.field_width , P);
+    else
+        v2 = skill_follow_ball_on_line(robot(:,2), ball, 0 , P);
+    end
 
     
     % output velocity commands to robots
@@ -122,6 +128,7 @@ end
 function v=skill_guard_goal(robot, ball, x_pos, P)
     % control x position to stay on current line
     vx = -P.control_k_vx*(robot(1)-x_pos);
+
     
     % control y position to match the ball's y-position if it is within the
     % goal's bounds

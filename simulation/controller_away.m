@@ -20,6 +20,58 @@ function v_c=controller_away(uu,P)
 end
 
 function v_c=controller_away_(uu,P)
+    v_c = vector_krum(uu, P);
+end
+
+function v_c=vector_krum(uu, P)
+    % process inputs to function
+    % robots - own team
+    for i=1:P.num_robots,
+        robot(:,i)   = uu(1+3*(i-1):3+3*(i-1));
+    end
+    NN = 3*P.num_robots;
+    % robots - opponent
+    for i=1:P.num_robots,
+        opponent(:,i)   = uu(1+3*(i-1)+NN:3+3*(i-1)+NN);
+    end
+    NN = NN + 3*P.num_robots;
+    % ball
+    ball = [uu(1+NN); uu(2+NN)];
+    NN = NN + 2;
+    % score: own team is score(1), opponent is score(2)
+    score = [uu(1+NN); uu(2+NN)];
+    NN = NN + 2;
+    % current time
+    t      = uu(1+NN);
+    
+    v_c = strategy_strong_offense(robot, opponent, ball, P, t);
+    %v_c = strategy_switch_offense_and_defense(robot, opponent, ball, P, t);
+end
+
+function v_c = strategy_strong_offense(robot, opponent, ball, P, t)
+    defense = 0;
+    offense = 1;
+    playtype = offense;
+    
+    % If the ball gets behind 3/4 field then go on defense
+    if(ball(1) < (3*P.field_length/12)) %P.field_width/8
+        playtype = defense;
+    end
+    
+    v1 = play_rush_goal(robot(:,1), ball, P);
+    
+    if(playtype == offense)
+        v2 = skill_follow_ball_on_line(robot(:,2), ball, P.field_length/6, P);
+    else
+        v2 = play_rush_goal(robot(:,2), ball, P);
+    end
+    
+    v1 = utility_saturate_velocity(v1,P);
+    v2 = utility_saturate_velocity(v2,P);
+    v_c = [v1; v2];
+end
+
+function v_c=default_controller_away(uu, P)
     % process inputs to function
     % robots - own team
     for i=1:P.num_robots,
@@ -52,6 +104,7 @@ function v_c=controller_away_(uu,P)
     v1 = utility_saturate_velocity(v1,P);
     v2 = utility_saturate_velocity(v2,P);
     v_c = [v1; v2];
+
 end
 
 %-----------------------------------------

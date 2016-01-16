@@ -9,6 +9,8 @@
 %
 
 % this first function catches simulink errors and displays the line number
+
+
 function v_c=controller_home(uu,P)
     try
         v_c=controller_home_(uu,P);
@@ -22,7 +24,7 @@ end
 % main control function
 function v_c=controller_home_(uu,P)   
     
-    v_c = strategy_default(uu, P);
+    v_c = strategy_intelligent(uu, P);
     
 end
 
@@ -96,6 +98,8 @@ function v_c=strategy_default(uu,P)
 end
 
 function v_c=strategy_intelligent(uu,P)
+    persistent robotMode;
+
     % process inputs to function
     % robots - own team
     for i=1:P.num_robots,
@@ -116,7 +120,6 @@ function v_c=strategy_intelligent(uu,P)
     % current time
     t      = uu(1+NN);
 
-    robotMode = 0;
     %0 = Robot 1 on Offense, Robot 2 on Defense
     %1 = Robot 1 on Defense, Robot 2 on Offense
     %2 = Robot 1 on Offense, Robot 2 on Offense
@@ -127,22 +130,28 @@ function v_c=strategy_intelligent(uu,P)
     
     robot2 = robot(:,2);
     distanceR2 = sqrt((robot2(1)-ball(1))^2 + (robot2(2) - ball(2))^2);
+
     
-    %should we change modes?
-    if(distanceR1 < .01)
-        robotMode = 0;
-    elseif(ball(1) < 0 && distanceR2 < .01)
-        robotMode = 1;
-    elseif(ball(1) > 0) %% && (distanceR1 < .01 || distanceR2 < .01))
-        robotMode = 2;
-    else
+    if isempty(robotMode)
         robotMode = 0;
     end
+    
+    %should we change modes?
+    if(distanceR1 < .20)
+        robotMode = 0;
+    elseif(distanceR2 < .20)
+        robotMode = 1;
+%     elseif(ball(1) > 0) %% && (distanceR1 < .01 || distanceR2 < .01))
+%         robotMode = 2;
+%     else
+%         robotMode = 0;
+    end
+    
+    
     
     if (robotMode == 0)
     % robot #1 positions itself behind ball and rushes the goal.
         if(ball(1) < 0 )
-
             v1 = play_rush_goal(robot(:,1), ball, P);
             %v1 = skill_between_ball_and_goal(robot(:,1), ball, P);
         else
@@ -156,6 +165,33 @@ function v_c=strategy_intelligent(uu,P)
         else
             v2 = skill_follow_ball_on_line(robot(:,2), ball, 0 , P);
         end
+    elseif(robotMode == 1)
+        if(ball(1) < 0 )
+            v2 = play_rush_goal(robot(:,2), ball, P);
+            %v1 = skill_between_ball_and_goal(robot(:,1), ball, P);
+        else
+            v2 = play_rush_goal(robot(:,2), ball, P);
+        end
+
+
+        % robot #2 stays on line, following the ball, facing the goal
+        if(ball(1) < 0)
+            v1 = skill_guard_goal(robot(:,1), ball, -P.field_width + .05 , P);
+        else
+            v1 = skill_follow_ball_on_line(robot(:,1), ball, 0 , P);
+        end
+    elseif(robotMode == 2)
+        if(ball(1) < 0 )
+            v1 = play_rush_goal(robot(:,1), ball, P);
+            v2 = play_rush_goal(robot(:,2), ball, P);
+            %v1 = skill_between_ball_and_goal(robot(:,1), ball, P);
+        else
+            v1 = play_rush_goal(robot(:,1), ball, P);
+            v2 = play_rush_goal(robot(:,2), ball, P);
+        end
+    else
+        v1 = skill_follow_ball_on_line(robot(:,1), ball, -P.field_length/4, P); 
+        v2 = skill_guard_goal(robot(:,2), ball, -P.field_width + .05, P);
     end
 
     
@@ -212,8 +248,10 @@ function v=skill_guard_goal(robot, ball, x_pos, P)
     
     % control y position to match the ball's y-position if it is within the
     % goal's bounds
-    topGoalY = P.goal_width / 2;
-    bottomGoalY = -1 * P.goal_width / 2;
+    goalOffset = .10;
+    
+    topGoalY = goalOffset + P.goal_width / 2;
+    bottomGoalY = -goalOffset + -1 * P.goal_width / 2;
     if ball(2) >= topGoalY,
         vy = -P.control_k_vy * (robot(2)-topGoalY);
     elseif ball(2) <= bottomGoalY,

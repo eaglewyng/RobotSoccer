@@ -44,7 +44,8 @@ function v_c=vector_krum(uu, P)
     % current time
     t      = uu(1+NN);
     
-    v_c = strategy_strong_offense(robot, opponent, ball, P, t);
+    %v_c = strategy_strong_offense(robot, opponent, ball, P, t);
+    v_c = default_controller_away(uu, P);
     %v_c = strategy_switch_offense_and_defense(robot, opponent, ball, P, t);
 end
 
@@ -93,8 +94,8 @@ function v_c=default_controller_away(uu, P)
     t      = uu(1+NN);
 
     % robot #1 positions itself behind ball and rushes the goal.
-    %v1 = play_rush_goal(robot(:,1), ball, P);
-    v1 = skill_follow_ball_on_line(robot(:,1), ball, -P.field_width/3, P);
+    v1 = play_rush_goal(robot(:,1), ball, P);
+    %v1 = skill_follow_ball_on_line(robot(:,1), ball, -P.field_width/3, P);
  
     % robot #2 stays on line, following the ball, facing the goal
     v2 = skill_follow_ball_on_line(robot(:,2), ball, -2*P.field_width/3, P);

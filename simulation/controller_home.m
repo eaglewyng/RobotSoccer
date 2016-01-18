@@ -23,15 +23,134 @@ end
 
 % main control function
 function v_c=controller_home_(uu,P)   
+    %choose strategy
     
-    v_c = strategy_intelligent(uu, P);
+    totalGameTime = 300;
+    
+    %overall state bits
+    persistent nearEndOfGame;
+    persistent leadingBy2;
+    persistent trailingBy2;
+    persistent defaultStrategyFailed;
+    persistent winning;
+    
+    if(isempty(nearEndOfGame))
+        nearEndOfGame = 0;
+    end
+    if(isempty(leadingBy2))
+        leadingBy2 = 0;
+    end
+    if(isempty(trailingBy2))
+        trailingBy2 = 0;
+    end
+    if(isempty(defaultStrategyFailed))
+        defaultStrategyFailed = 0;
+    end
+    if(isempty(winning))
+        winning = 0;
+    end
+    
+    
+    % process inputs to function
+    % robots - own team
+    for i=1:P.num_robots,
+        robot(:,i)   = uu(1+3*(i-1):3+3*(i-1));
+    end
+    NN = 3*P.num_robots;
+    % robots - opponent
+    for i=1:P.num_robots,
+        opponent(:,i)   = uu(1+3*(i-1)+NN:3+3*(i-1)+NN);
+    end
+    NN = NN + 3*P.num_robots;
+    % ball
+    ball = [uu(1+NN); uu(2+NN)];
+    NN = NN + 2;
+    % score: own team is score(1), opponent is score(2)
+    score = [uu(1+NN); uu(2+NN)];
+    NN = NN + 2;
+    % current time
+    t      = uu(1+NN);
+    
+    %update persistent vars if needed
+    if(t >= (totalGameTime - totalGameTime * .2))
+        nearEndOfGame = 1;
+    else
+        nearEndOfGame = 0;
+    end
+    if(score(1) - score(2) >= 2)
+        leadingBy2 = 1;
+    else
+        leadingBy2 = 0;
+    end
+    if(score(2) - score(1) >= 2)
+        trailingBy2 = 1;
+        defaultStrategyFailed = 1;
+    else
+        trailingBy2 = 0;
+    end
+    if(score(1) > score(2))
+        winning = 1;
+    else
+        winning = 0;
+    end
+    
+    %if we are near the end of the game and we are not winning,
+    %take on an aggressive strategy. If we're wining, take a defensive
+    %strategy.
+    if(nearEndOfGame == 1)
+        if(winning == 0)
+            v_c = strategy_strong_offense(P, robot, ball);
+        else
+            %Go super defensive.
+            v_c = strategy_puppyguard_goal(P, robot, ball);
+        end
+        
+    %if we're leading by 2, take a defensive strategy    
+    elseif(leadingBy2==1)
+        v_c = strategy_puppyguard_goal(P, robot, ball);
+    elseif(trailingBy2)
+        v_c = strategy_strong_offense(P, robot, ball);
+    elseif(defaultStrategyFailed == 1)
+        %do a different strategy
+        %TODO: evaluate strategies from last years' teams
+        v_c = strategy_strong_offense(P, robot, ball);
+    else
+        v_c = strategy_intelligent(P, robot, ball);
+    end
+    
+    
+    
     
 end
+
+function v_c = strategy_strong_offense(P, robot, ball)
+    defense = 0;
+    offense = 1;
+    playtype = offense;
+    
+    % If the ball gets behind 3/4 field then go on defense
+    if(ball(1) < (3*P.field_length/12)) %P.field_width/8
+        playtype = defense;
+    end
+    
+    v1 = play_rush_goal(robot(:,1), ball, P);
+    
+    if(playtype == offense)
+        v2 = skill_follow_ball_on_line(robot(:,2), ball, P.field_length/6, P);
+    else
+        v2 = play_rush_goal(robot(:,2), ball, P);
+    end
+    
+    v1 = utility_saturate_velocity(v1,P);
+    v2 = utility_saturate_velocity(v2,P);
+    v_c = [v1; v2];
+end
+
 
 %-----------------------------------------
 % play - rush goal
 %   - go to position behind ball
-%   - if ball is between robot and goal, go to goal
+%   - if ball is uubetween robot and goal, go to goal
 % NOTE:  This is a play because it is built on skills, and not control
 % commands.  Skills are built on control commands.  A strategy would employ
 % plays at a lower level.  For example, switching between offense and
@@ -67,11 +186,7 @@ function v_c=strategy_default(uu,P)
     % ball
     ball = [uu(1+NN); uu(2+NN)];
     NN = NN + 2;
-    % score: own team is score(1), opponent is score(2)
-    score = [uu(1+NN); uu(2+NN)];
-    NN = NN + 2;
-    % current time
-    t      = uu(1+NN);
+    
     % robot #1 positions itself behind ball and rushes the goal.
     if(ball(1) < 0 )
 
@@ -97,28 +212,10 @@ function v_c=strategy_default(uu,P)
     v_c = [v1; v2];
 end
 
-function v_c=strategy_intelligent(uu,P)
+function v_c=strategy_intelligent(P, robot, ball)
     persistent robotMode;
 
-    % process inputs to function
-    % robots - own team
-    for i=1:P.num_robots,
-        robot(:,i)   = uu(1+3*(i-1):3+3*(i-1));
-    end
-    NN = 3*P.num_robots;
-    % robots - opponent
-    for i=1:P.num_robots,
-        opponent(:,i)   = uu(1+3*(i-1)+NN:3+3*(i-1)+NN);
-    end
-    NN = NN + 3*P.num_robots;
-    % ball
-    ball = [uu(1+NN); uu(2+NN)];
-    NN = NN + 2;
-    % score: own team is score(1), opponent is score(2)
-    score = [uu(1+NN); uu(2+NN)];
-    NN = NN + 2;
-    % current time
-    t      = uu(1+NN);
+    
 
     %0 = Robot 1 on Offense, Robot 2 on Defense
     %1 = Robot 1 on Defense, Robot 2 on Offense
@@ -201,6 +298,25 @@ function v_c=strategy_intelligent(uu,P)
     v_c = [v1; v2];
 end
 
+function v_c = strategy_puppyguard_goal(P, robot, ball)
+
+    yoffset = .15;
+    if(ball(2) <= 0)
+        v1 = skill_guard_goal_secondary(robot(:,1), ball, -P.field_width + .05, yoffset, P);
+        v2 = skill_guard_goal(robot(:,2), ball, -P.field_width + .05, P);
+    else
+        v2 = skill_guard_goal_secondary(robot(:,2), ball, -P.field_width + .05, yoffset, P);
+        v1 = skill_guard_goal(robot(:,1), ball, -P.field_width + .05, P);
+    end
+    
+    % output velocity commands to robots
+    v1 = utility_saturate_velocity(v1,P);
+    v2 = utility_saturate_velocity(v2,P);
+    v_c = [v1; v2];
+        
+end
+
+
 %-----------------------------------------
 % skill - follow ball on line
 %   follows the y-position of the ball, while maintaining x-position at
@@ -268,9 +384,37 @@ function v=skill_guard_goal(robot, ball, x_pos, P)
 
 end
 
-function v=skill_between_ball_and_goal(robot, ball, P)
+function v=skill_guard_goal_secondary(robot, ball, x_pos, yoffset, P)
+    % control x position to stay on current line
+    vx = -P.control_k_vx*(robot(1)-x_pos);
 
     
+    % control y position to match the ball's y-position if it is within the
+    % goal's bounds
+    goalOffset = .10;
+    
+    topGoalY = goalOffset + P.goal_width / 2;
+    bottomGoalY = -goalOffset + -1 * P.goal_width / 2;
+    if ball(2) >= topGoalY,
+        vy = -P.control_k_vy * (robot(2)-topGoalY-yoffset);
+    elseif ball(2) <= bottomGoalY,
+        vy = -P.control_k_vy * (robot(2)-bottomGoalY + yoffset);
+    elseif(ball(2) <= 0)
+        vy = -P.control_k_vy*(robot(2)-ball(2)+yoffset);
+    else
+        vy = -P.control_k_vy*(robot(2)-ball(2)-yoffset);
+    end
+    
+    % control angle to -pi/2
+    theta_d = atan2(ball(2) - robot(2), ball(1)-robot(1));
+    omega = -P.control_k_phi*(robot(3) - theta_d); 
+    
+    v = [vx; vy; omega];
+end
+
+
+function v=skill_between_ball_and_goal(robot, ball, P)
+
     % control y position to match the ball's y-position if it is within the
     % goal's bounds
     point = [-P.field_length/2 + 2/3*(abs(P.field_length/2) - abs(ball(1))), 2/3*ball(2)];

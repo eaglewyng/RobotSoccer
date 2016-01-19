@@ -238,10 +238,6 @@ function v_c=strategy_intelligent(P, robot, ball)
         robotMode = 0;
     elseif(distanceR2 < .20)
         robotMode = 1;
-%     elseif(ball(1) > 0) %% && (distanceR1 < .01 || distanceR2 < .01))
-%         robotMode = 2;
-%     else
-%         robotMode = 0;
     end
     
     
@@ -314,6 +310,12 @@ function v_c = strategy_puppyguard_goal(P, robot, ball)
     v2 = utility_saturate_velocity(v2,P);
     v_c = [v1; v2];
         
+end
+
+function v_c = strategy_debug()
+    v1 = 0;
+    v2 = 0;
+    v_c = [v1; v2];
 end
 
 

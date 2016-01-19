@@ -4,6 +4,7 @@ import argparse
 import cv2
 import time
 
+# boundary values are in reverse RGB order (BGR)
 boundaries = [
     ([0  , 0  , 75 ], [100, 100, 255]),              # red
     ([0  , 75 , 0  ], [120, 255, 120]),              # green
@@ -18,6 +19,10 @@ output = [None for x in boundaries]
 
 while(True):
     ret, image = cap.read()
+    for i in range(len(image)):
+        for j in range(len(image[0])):
+            if image[i][j][1] > 150:
+                image[i][j] = [0, 255, 0]
 
     image = cv2.resize(image, (0, 0), fx=0.6, fy=0.6)
     for i, (lower, upper) in enumerate(boundaries):

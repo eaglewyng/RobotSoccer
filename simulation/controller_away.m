@@ -44,8 +44,8 @@ function v_c=vector_krum(uu, P)
     % current time
     t      = uu(1+NN);
     
-    %v_c = strategy_strong_offense(robot, opponent, ball, P, t);
-    v_c = default_controller_away(uu, P);
+    v_c = strategy_strong_offense(robot, opponent, ball, P, t);
+    %v_c = default_controller_away(uu, P);
     %v_c = strategy_switch_offense_and_defense(robot, opponent, ball, P, t);
 end
 

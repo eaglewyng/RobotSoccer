@@ -169,11 +169,32 @@ function v = play_rush_goal(robot, ball, P)
     
   if norm(position-robot(1:2))<.21,
       v = skill_go_to_point(robot, P.goal, P);
+      %v = wall_bounce_to_goal(robot, ball, P);
   else
       v = skill_go_to_point(robot, position, P);
   end
 
 end
+
+function v = wall_bounce_to_goal(robot, ball, P)
+
+if(robot(2) < 0)
+    
+    x_hit_location = (robot(1) + P.goal(1))/2
+    y_hit_location = -P.field_width/2;
+    v = skill_go_to_point(robot, [x_hit_location, y_hit_location], P);
+    
+else
+   x_hit_location = (robot(1) + P.goal(1))/2
+   y_hit_location = P.field_width/2;
+   v = skill_go_to_point(robot, [x_hit_location, y_hit_location], P);
+    
+end
+
+
+end
+
+
 
 function v_c=strategy_default(uu,P)
     % process inputs to function

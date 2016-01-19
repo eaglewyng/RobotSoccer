@@ -71,6 +71,10 @@ function v_c=controller_home_(uu,P)
     % current time
     t      = uu(1+NN);
     
+    if(t < 3)
+        defaultStrategyFailed = 0;
+    end
+    
     %update persistent vars if needed
     if(t >= (totalGameTime - totalGameTime * .2))
         nearEndOfGame = 1;
@@ -102,12 +106,12 @@ function v_c=controller_home_(uu,P)
             v_c = strategy_strong_offense(P, robot, ball);
         else
             %Go super defensive.
-            v_c = strategy_puppyguard_goal(P, robot, ball);
+            v_c = strategy_strong_defense(P, robot, ball);
         end
         
     %if we're leading by 2, take a defensive strategy    
     elseif(leadingBy2==1)
-        v_c = strategy_puppyguard_goal(P, robot, ball);
+        v_c = strategy_strong_defense(P, robot, ball);
     elseif(trailingBy2)
         v_c = strategy_strong_offense(P, robot, ball);
     elseif(defaultStrategyFailed == 1)
@@ -318,6 +322,17 @@ function v_c = strategy_debug()
     v_c = [v1; v2];
 end
 
+function v_c = strategy_strong_defense(P, robot, ball)
+
+    v1 = skill_guard_goal(robot(:,1), ball, -P.field_width + .05, P);
+    v2 = skill_between_ball_and_goal(robot(:,2), ball, P);
+
+    % output velocity commands to robots
+    v1 = utility_saturate_velocity(v1,P);
+    v2 = utility_saturate_velocity(v2,P);
+    v_c = [v1; v2];
+
+end
 
 %-----------------------------------------
 % skill - follow ball on line
@@ -416,19 +431,26 @@ end
 
 
 function v=skill_between_ball_and_goal(robot, ball, P)
-
+    
     % control y position to match the ball's y-position if it is within the
     % goal's bounds
     point = [-P.field_length/2 + 2/3*(abs(P.field_length/2) - abs(ball(1))), 2/3*ball(2)];
-    
+    goalX = P.field_length/2;
+    goalY = 0;
     
 %     % control angle to -pi/2
     
-%     
-    vtemp = skill_go_to_point(robot, point, P);
+%  
+    leastX = -P.field_width + P.field_length / 10 + .05; 
+    if (point(1) < leastX)
+        vtemp = skill_go_to_point(robot, [leastX, point(2)], P);
+    else
+        vtemp = skill_go_to_point(robot, point, P);
+    end
 %     theta_d = atan2(ball(2), ball(1));
 %     omega = -P.control_k_phi*(robot(3) - theta_d); 
-    theta_d = atan2(ball(2) - robot(2), ball(1)-robot(1));
+    %theta_d = atan2(ball(2) - robot(2), ball(1)-robot(1));
+    theta_d = atan2(goalY - robot(2), goalX-robot(1));
     omega = -P.control_k_phi*(robot(3) - theta_d); 
     v = [vtemp(1); vtemp(2); omega];
 end

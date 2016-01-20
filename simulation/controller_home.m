@@ -25,7 +25,7 @@ end
 function v_c=controller_home_(uu,P)   
     %choose strategy
     
-    totalGameTime = 90;
+    totalGameTime = 120;
     
     %overall state bits
     persistent nearEndOfGame;

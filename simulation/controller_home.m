@@ -25,7 +25,7 @@ end
 function v_c=controller_home_(uu,P)   
     %choose strategy
     
-    totalGameTime = 300;
+    totalGameTime = 90;
     
     %overall state bits
     persistent nearEndOfGame;
@@ -76,7 +76,7 @@ function v_c=controller_home_(uu,P)
     end
     
     %update persistent vars if needed
-    if(t >= (totalGameTime - totalGameTime * .2))
+    if(t >= (totalGameTime - totalGameTime * .3))
         nearEndOfGame = 1;
     else
         nearEndOfGame = 0;
@@ -265,7 +265,7 @@ function v_c=strategy_intelligent(P, robot, ball)
         robotMode = 1;
     end
     
-    
+    midOffset = .05;
     
     if (robotMode == 0)
     % robot #1 positions itself behind ball and rushes the goal.
@@ -281,7 +281,7 @@ function v_c=strategy_intelligent(P, robot, ball)
         if(ball(1) < 0)
             v2 = skill_guard_goal(robot(:,2), ball, -P.field_width + .05 , P);
         else
-            v2 = skill_follow_ball_on_line(robot(:,2), ball, 0 , P);
+            v2 = skill_follow_ball_on_line(robot(:,2), ball, 0 + midOffset, P);
         end
     elseif(robotMode == 1)
         if(ball(1) < 0 )
@@ -296,7 +296,7 @@ function v_c=strategy_intelligent(P, robot, ball)
         if(ball(1) < 0)
             v1 = skill_guard_goal(robot(:,1), ball, -P.field_width + .05 , P);
         else
-            v1 = skill_follow_ball_on_line(robot(:,1), ball, 0 , P);
+            v1 = skill_follow_ball_on_line(robot(:,1), ball, 0 + midOffset, P);
         end
     elseif(robotMode == 2)
         if(ball(1) < 0 )

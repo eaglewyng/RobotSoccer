@@ -4,6 +4,7 @@ i = 0
 flag = True
 while True:
   print(i)
+  roboclaw.M2Forward(128, i)
   roboclaw.M1Forward(128, i)
   i = i + 10 if flag else i - 10
   if i > 120:

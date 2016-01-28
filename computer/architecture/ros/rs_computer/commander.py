@@ -13,7 +13,7 @@ r = rospy.Rate(10)
 print("\n\n")
 
 
-while not rospy.is_shutdown()
+while not rospy.is_shutdown():
 	print("COMMAND MENU\n")
 	print("------------\n")
 	print("Description\tCommand\n")

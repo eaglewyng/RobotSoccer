@@ -116,3 +116,9 @@ sftp-config.json
 *.exe
 *.out
 *.app
+
+
+### ROS ###
+build/
+devel/
+.catkin_workspace

@@ -89,8 +89,8 @@ double dist_coeff[5][1] = {  {-0.3647790},
 double cam_matrix[3][3] = {  {513,  0.0,  315.6},
                              {0.0,  513.94,  266.72},
                              {0.0,  0.0,  1.0}
-                          };                          
-                          
+                          };
+
 // Declaration of the 5 objects
 Robot home1(HOME), home2(HOME);
 Robot away1(AWAY), away2(AWAY);
@@ -136,7 +136,7 @@ void saveSettings() {
   of << "# [Ball] [Hmin] [Smin] [Vmin] [Hmax] [Smax] [Vmax]" << "\n";
   of << "# [Field] [x_center_pos] [y_center_pos] [width] [height]" << "\n";
   of << "#############################################################" << "\n";
-  of << "\n\n"; 
+  of << "\n\n";
 
   // Robot Save format:
   // [RobotName] [Hmin] [Smin] [Vmin] [Hmax] [Smax] [Vmax]
@@ -338,7 +338,7 @@ void createHSVTrackbars() {
 
 	//create trackbars and insert them into window
 	//3 parameters are: the address of the variable that is changing when the trackbar is moved(eg.H_LOW),
-	//the max value the trackbar can move (eg. H_HIGH), 
+	//the max value the trackbar can move (eg. H_HIGH),
 	//and the function that is called whenever the trackbar is moved(eg. on_trackbar)
 	createTrackbar( "H_MIN", trackbarWindowName, &H_MIN, H_MAX, on_trackbar );
 	createTrackbar( "H_MAX", trackbarWindowName, &H_MAX, H_MAX, on_trackbar );
@@ -429,7 +429,7 @@ void calibrateField(VideoCapture capture) {
     field_origin_y = field_center_y - (field_height/2);
 
     Rect fieldOutline(field_origin_x, field_origin_y, field_width, field_height);
-    
+
     // Draw centering lines
     Point top_mid(field_center_x, field_origin_y);
     Point bot_mid(field_center_x, field_origin_y+field_height);
@@ -437,7 +437,7 @@ void calibrateField(VideoCapture capture) {
     Point right_mid(field_origin_x+field_width, field_center_y);
     line(cameraFeed,top_mid, bot_mid, Scalar(200,200,200), 1, 8, 0);
     line(cameraFeed,left_mid, right_mid, Scalar(200,200,200), 1, 8, 0);
-    
+
     // Draw outline
     rectangle(cameraFeed,fieldOutline,Scalar(255,255,255), 1, 8 ,0);
     imshow(windowName,cameraFeed);
@@ -545,7 +545,7 @@ void * parserThread(void * notUsed){
     if (value < MIN_BUFFER_SIZE){
       frameRawFifo.push(frame);
       sem_post(&frameRawSema);
-    } 
+    }
     else {
       //printf("frame dropped (Capture): %u.%09u\n",frame.timestamp.sec,frame.timestamp.nsec);
     }
@@ -569,10 +569,10 @@ void * processorThread(void * notUsed){
       frameMat.image = imdecode(frameRaw.image, CV_LOAD_IMAGE_COLOR);
 
       undistortImage(frameMat.image);
-      
+
       int field_origin_x;
       int field_origin_y;
-      
+
       //convert frame from BGR to HSV colorspace
       field_origin_x = field_center_x - (field_width/2);
       field_origin_y = field_center_y - (field_height/2);
@@ -583,7 +583,7 @@ void * processorThread(void * notUsed){
 
       frameMatFifo.push(frameMat);
       sem_post(&frameMatSema);
-    } 
+    }
     else {
       //printf("frame dropped (Process): %u.%09u\n",frameRaw.timestamp.sec,frameRaw.timestamp.nsec);
     }
@@ -637,7 +637,7 @@ int main(int argc, char* argv[]) {
 	Mat threshold; //combined image
 	Mat bw; // black and white mat
   Mat BGR;// BGR mat
-  
+
 	//video capture object to acquire webcam feed
 	const string videoStreamAddress = "http://192.168.1.10:8080/stream?topic=/image&dummy=param.mjpg";
 
@@ -665,7 +665,7 @@ int main(int argc, char* argv[]) {
 
   /************************************************************************/
 
-  
+
   /************************************************************************/
 	//start an infinite loop where webcam feed is copied to cameraFeed matrix
 	//all of our operations will be performed within this loop
@@ -689,7 +689,7 @@ int main(int argc, char* argv[]) {
   pthread_create (&ballT, NULL, ballThread, NULL);
   pthread_create (&home1T, NULL, home1Thread, NULL);
   pthread_create (&away1T, NULL, away1Thread, NULL);
-  
+
   unsigned int printCounter = 0;
   while(ros::ok()) {
     sem_wait(&frameMatSema);
@@ -714,7 +714,7 @@ int main(int argc, char* argv[]) {
       // Show Field Outline
       Rect fieldOutline(0, 0, field_width, field_height);
       rectangle(cameraFeed,fieldOutline,Scalar(255,255,255), 1, 8 ,0);
-      
+
       // Draw centering lines
       Point top_mid(field_width/2, 0);
       Point bot_mid(field_width/2, field_height);
@@ -722,11 +722,11 @@ int main(int argc, char* argv[]) {
       Point right_mid(field_width, field_height/2);
       line(cameraFeed,top_mid, bot_mid, Scalar(200,200,200), 1, 8, 0);
       line(cameraFeed,left_mid, right_mid, Scalar(200,200,200), 1, 8, 0);
-      
+
       //create window for trackbars
       imshow(windowName,cameraFeed);
     }
-    
+
     /***********************Ros Publisher************************************/
 
     // Create message object
@@ -739,7 +739,7 @@ int main(int argc, char* argv[]) {
     coordinates.home1_theta = home1.getAngle();
     coordinates.away1_x = away1.get_x_pos();
     coordinates.away1_y = away1.get_y_pos();
-    coordinates.away1_theta = away1.getAngle();    
+    coordinates.away1_theta = away1.getAngle();
     coordinates.header.stamp = timestamp;
     // Print values to ROS console
     if (!(printCounter%PRINT_FREQ)) {

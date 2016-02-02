@@ -27,11 +27,6 @@
 
 typedef struct {
   ros::Time timestamp;
-  std::vector<char> image;
-} FrameRaw;
-
-typedef struct {
-  ros::Time timestamp;
   cv::Mat image;
   cv::Mat HSV;
 } FrameMat;

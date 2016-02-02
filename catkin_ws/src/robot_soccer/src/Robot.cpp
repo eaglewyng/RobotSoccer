@@ -83,7 +83,7 @@ void Robot::calibrateRobot(VideoCapture capture) {
       field_origin_x = field_center_x - (field_width/2);
       field_origin_y = field_center_y - (field_height/2);
       Rect myROI(field_origin_x,field_origin_y,field_width, field_height);
-      cameraFeed = cameraFeed(myROI);
+      // cameraFeed = cameraFeed(myROI);
       cvtColor(cameraFeed,HSV,COLOR_BGR2HSV);
 
       //if in calibration mode, we track objects based on the HSV slider values.

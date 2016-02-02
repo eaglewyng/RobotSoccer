@@ -467,7 +467,7 @@ void runFullCalibration(VideoCapture capture) {
   calibrateField(capture);
   ball.calibrateBall(capture);
   home1.calibrateRobot(capture);
-  away1.calibrateRobot(capture);
+  // away1.calibrateRobot(capture);
   saveSettings();
 }
 
@@ -688,7 +688,7 @@ int main(int argc, char* argv[]) {
   pthread_create (&processor, NULL, processorThread, NULL);
   pthread_create (&ballT, NULL, ballThread, NULL);
   pthread_create (&home1T, NULL, home1Thread, NULL);
-  pthread_create (&away1T, NULL, away1Thread, NULL);
+  // pthread_create (&away1T, NULL, away1Thread, NULL);
 
   unsigned int printCounter = 0;
   while(ros::ok()) {
@@ -708,7 +708,7 @@ int main(int argc, char* argv[]) {
     sem_post(&trackAway1Begin);
     sem_wait(&trackBallEnd);
     sem_wait(&trackHome1End);
-    sem_wait(&trackAway1End);
+    // sem_wait(&trackAway1End);
 
     if (PERF_MODE == GUI /* && !(printCounter%PRINT_FREQ) */) {
       // Show Field Outline

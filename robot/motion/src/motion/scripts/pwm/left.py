@@ -11,8 +11,5 @@ while i != -10:
   if i > 120:
     i = 120
     flag = False
-  if i < 0:
-    i = 0
-    #flag = True
   time.sleep(0.05)
 

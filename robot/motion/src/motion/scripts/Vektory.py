@@ -9,7 +9,7 @@ from MotionSkills import *
 from motor_control import roboclaw
 from gamepieces.HomeRobot import HomeRobot
 from gamepieces.HomeRobot import RobotCommand
-from kalman_filter.Ball import *
+from gamepieces.Ball import *
 from param import *
 from utilities.kick import kick
 from kalman_filter.Locations import *
@@ -35,7 +35,7 @@ class TestState(Enum):
   check = 1
   rushGoal = 2
   getBehindBall = 3
-  
+
 class Rotate(Enum):
   none = 1
   clockwise = 2
@@ -69,7 +69,7 @@ class Vektory:
 
   def rotateAroundBallToAngle(self,targetAngle):
     #lookAtPoint = self.ball.point
-    delta = MotionSkills.deltaBetweenAngles(self.robotLocation.theta, targetAngle)    
+    delta = MotionSkills.deltaBetweenAngles(self.robotLocation.theta, targetAngle)
     vektor_x = 0
     vektor_y = 0
     if abs(delta) < .1:
@@ -79,14 +79,14 @@ class Vektory:
       vektor_y = -CIRCLE_SPEED
     else:
       vektor_y = CIRCLE_SPEED
-    
+
     #angle = math.atan2(lookAtPoint.y-self.robotLocation.y, lookAtPoint.x-self.robotLocation.x)
-    
+
     #delta_angle = angle-self.robotLocation.theta
-    
+
     #bestDelta = math.atan2(math.sin(delta_angle), math.cos(delta_angle)) * SCALE_OMEGA
     #print bestDelta
-      
+
     #if bestDelta < MIN_DELTA and bestDelta > -MIN_DELTA:
     #  bestDelta = 0
     good = CIRCLE_SPEED/self.distanceToBall
@@ -121,23 +121,23 @@ class Vektory:
     else:
       omega = delta_angle * 3.0
     self.sendCommand(vel_x,vel_y,omega,self.robotLocation.theta)
-    
-  
+
+
   def go_to_point(self,x, y, lookAtPoint=None):
     #print "go_to_point"
     if lookAtPoint == None:
       lookAtPoint = self.ball.point
     desired_x = x
     desired_y = y
-    
+
     vektor_x = (desired_x-self.robotLocation.x) * SCALE_VEL
     vektor_y = (desired_y-self.robotLocation.y) * SCALE_VEL
-    
-    mag = math.sqrt(vektor_x**2+vektor_y**2) 
+
+    mag = math.sqrt(vektor_x**2+vektor_y**2)
     angle = math.atan2(lookAtPoint.y-self.robotLocation.y, lookAtPoint.x-self.robotLocation.x)
-    
+
     delta_angle = angle-self.robotLocation.theta
-    
+
     bestDelta = math.atan2(math.sin(delta_angle), math.cos(delta_angle)) * SCALE_OMEGA
     #print bestDelta
     if mag >= MAX_SPEED:
@@ -146,11 +146,11 @@ class Vektory:
     elif mag < MIN_SPEED:
       vektor_x = 0
       vektor_y = 0
-      
+
     if bestDelta < MIN_DELTA and bestDelta > -MIN_DELTA:
       bestDelta = 0
     self.sendCommand(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
-    
+
   def updateLocations(self):
     try:
         locations = rospy.ServiceProxy('locations', curlocs)
@@ -167,7 +167,7 @@ class Vektory:
 
   def commandRoboclaws(self):
     velchange.goXYOmegaTheta(self.vel_x,self.vel_y,self.omega,self.robotLocation.theta)
-  
+
   def old(self):
     self.updateLocations()
     if self.testState == TestState.check:
@@ -176,7 +176,7 @@ class Vektory:
       else:
         self.testState = TestState.rushGoal
         self.stopRushingGoalTime = getTime() + 100
-        
+
     if self.testState == TestState.getBehindBall:
       point = Point(self.ball.point.x-DIS_BEHIND_BALL, self.ball.point.y)
       if self.robotLocation.y > self.ball.point.y:
@@ -185,33 +185,33 @@ class Vektory:
         point.y = point.y - DIS_BEHIND_BALL
       self.go_direction2(point)
       self.testState = TestState.check
-      
+
     if self.testState == TestState.rushGoal:
       if self.ball.point.y < -.25 and self.robotLocation.y > (self.ball.point.y + DIS_BEHIND_BALL):
         point = Point(self.ball.point.x,self.ball.point.y - 1.0)
         self.go_direction2(point)
       elif self.ball.point.y > .25 and self.robotLocation.y < (self.ball.point.y - DIS_BEHIND_BALL):
         point = Point(self.ball.point.x,self.ball.point.y + 1.0)
-        self.go_direction2(point)      
+        self.go_direction2(point)
       elif abs(self.distanceToBall) > (DIS_BEHIND_BALL*3/4):
         self.go_direction2(self.ball.point)
       else:
         self.go_direction2(HOME_GOAL)
       if getTime() >= self.stopRushingGoalTime:
         self.testState = TestState.check
-        
+
   def test(self):
     global HOME_GOAL
     self.updateLocations()
     HOME_GOAL = Point(HOME_GOAL.x,0)
-    
+
     # Kick the ball off of the sides when it is too close to the side
     if self.ball.point.y < (MARGIN - HEIGHT_FIELD_METER/2):
       HOME_GOAL = Point(HOME_GOAL.x, -HEIGHT_FIELD_METER)
     if self.ball.point.y > (HEIGHT_FIELD_METER/2 - MARGIN):
       HOME_GOAL = Point(HOME_GOAL.x, HEIGHT_FIELD_METER)
-      
-    # Make sure the robot is behind the ball and facing the goal  
+
+    # Make sure the robot is behind the ball and facing the goal
     if self.testState == TestState.check:
       self.testState = TestState.getBehindBall
       angleBallGoal = MotionSkills.angleBetweenPoints(self.ball.point,HOME_GOAL)
@@ -219,8 +219,8 @@ class Vektory:
       if MotionSkills.isPointInFrontOfRobot(self.robotLocation,self.ball.point) and abs(deltaAngle) < .12:
         self.testState = TestState.rushGoal
         self.stopRushingGoalTime = getTime() + 45
-    
-    # Get behind the ball. Move to the side first is necessary    
+
+    # Get behind the ball. Move to the side first is necessary
     if self.testState == TestState.getBehindBall:
       if (self.ball.point.x + .05) < (self.robotLocation.x):
           point = Point(self.ball.point.x)
@@ -235,15 +235,15 @@ class Vektory:
           behindTheBallPoint = MotionSkills.getPointBehindBall(self.ball,HOME_GOAL)
           self.go_to_point(behindTheBallPoint.x,behindTheBallPoint.y)
       self.testState = TestState.check
-    
-    # Rush the goal and kick for the specified time  
+
+    # Rush the goal and kick for the specified time
     if self.testState == TestState.rushGoal:
       self.go_to_point(HOME_GOAL.x,HOME_GOAL.y,HOME_GOAL)
       if self.distanceToBall < .05:
         kick()
       if self.stopRushingGoalTime <= getTime():
         self.testState = TestState.check
-  
+
   def play(self):
     self.updateLocations()
     self.commandRoboclaws()
@@ -251,12 +251,12 @@ class Vektory:
     #self.setSpeed()
     #check if robot is ready to rush goal
     if self.state == State.check:
-      self.state = State.getBehindBall 
+      self.state = State.getBehindBall
       if self.robotLocation.x > pixelToMeter(345):
         self.state = State.returnToPlay
       elif (MotionSkills.isPointInFrontOfRobot(self.robotLocation,self.ball.point, 0.5, 0.04 + abs(MAX_SPEED/4))): #This offset compensates for the momentum
         self.state = State.rushGoal# rush goal
-        self.stopRushingGoalTime = getTime() + int(2 * DIS_BEHIND_BALL/MAX_SPEED*100)  
+        self.stopRushingGoalTime = getTime() + int(2 * DIS_BEHIND_BALL/MAX_SPEED*100)
 
     if self.state == State.rushGoal:
       #self.speed = RUSH_SPEED
@@ -265,19 +265,19 @@ class Vektory:
       if getTime() >= self.stopRushingGoalTime:
         kick()
         self.state = State.check
-    
+
     if self.state == State.returnToPlay:
       self.go_to_point(CENTER.x, CENTER.y, HOME_GOAL)
       if abs(self.robotLocation.x) < .2 and abs(self.robotLocation.y) < .2:
         self.state = State.check
-      
+
     #check if ball is behind robot
     if self.state == State.getBehindBall:
       #robot in front of ball
       if MotionSkills.isBallBehindRobot(self.robotLocation, self.ball.point):
         # This gets a point beside the ball perpendicular to the line of the ball and the goal
         #point = getPointBesideBall(self.robotLocation, self.ball.point, DIS_BEHIND_BALL)
-        
+
         point = Point(self.ball.point.x)
         # if robot above ball
         if self.ball.point.y < self.robotLocation.y:
@@ -290,10 +290,10 @@ class Vektory:
         #self.go_to_point(point.x,point.y)
       #robot behind ball
       else:
-        behindTheBallPoint = MotionSkills.getPointBehindBall(self.ball)  
+        behindTheBallPoint = MotionSkills.getPointBehindBall(self.ball)
         self.go_direction(behindTheBallPoint)
-        self.state = State.check  
-  
+        self.state = State.check
+
   def executionLoop(self, scheduler):
     scheduler.enter(.05, 1, self.executionLoop,(scheduler,))
     if self.gameState == GameState.play:
@@ -317,9 +317,9 @@ class Vektory:
         self.go_to_point(pixelToMeter(-115), 0, HOME_GOAL)
       elif self.stopped == False:
         self.sendCommand(0,0,0);
-        self.stopped = True;      
+        self.stopped = True;
 
-  
+
   def executeCommCenterCommand(self,req):
     if req.comm == 1:
       self.gameState = GameState.stop
@@ -340,7 +340,7 @@ class Vektory:
       self.gameState = GameState.test
 
     return commcenterResponse()
-  
+
   def go(self):
     roboclaw.calibrateRoboclaws()
     print "Searching for Vektor Locations Service..."

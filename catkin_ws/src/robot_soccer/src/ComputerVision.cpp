@@ -110,6 +110,8 @@ sem_t trackBallEnd;
 sem_t trackHome1End;
 sem_t trackAway1End;
 
+VideoCapture capture;
+
 // Saves all of the pertinent calibration settings to human-readable file
 void saveSettings() {
   // Open file
@@ -640,9 +642,6 @@ int main(int argc, char* argv[]) {
 
 	//video capture object to acquire webcam feed
 	const string videoStreamAddress = "http://192.168.1.10:8080/stream?topic=/image&dummy=param.mjpg";
-
-	VideoCapture capture;
-
   capture.open(videoStreamAddress); //set to 0 to use the webcam
 
 	//set height and width of capture frame

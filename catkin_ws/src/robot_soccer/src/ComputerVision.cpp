@@ -98,7 +98,7 @@ Ball ball;
 
 // threading
 sem_t frameRawSema;
-std::queue<FrameRaw> frameRawFifo;
+std::queue<FrameMat> frameRawFifo;
 sem_t frameMatSema;
 std::queue<FrameMat> frameMatFifo;
 Mat cameraFeed;
@@ -535,13 +535,15 @@ ros::Time getNextImage(std::ifstream & myFile, std::vector<char> & imageArray) {
 //This thread loads the streaming video into memory to be loaded into
 //openCV
 void * parserThread(void * notUsed){
-  system("curl -s http://192.168.1.10:8080/stream?topic=/image&dummy=param.mjpg > imagefifo &");
-  std::ifstream myFile ("imagefifo",std::ifstream::binary);
-  std::vector<char> imageArray;
-  FrameRaw frame;
+  FrameMat frame;
+
   do {
-    frame.timestamp = getNextImage(myFile, imageArray);
-    frame.image = imageArray;
+    ros::Time timestamp;
+    timestamp.sec = 0;
+    timestamp.nsec = 0;
+    frame.timestamp = timestamp;
+    capture.read(frame.image);
+
     int value;
     sem_getvalue(&frameRawSema, &value);
     if (value < MIN_BUFFER_SIZE){
@@ -557,7 +559,7 @@ void * parserThread(void * notUsed){
 
 //This thread converts JPEGs into Mats and undistorts them.
 void * processorThread(void * notUsed){
-  FrameRaw frameRaw;
+  FrameMat frameRaw;
   FrameMat frameMat;
   while(1) {
     sem_wait(&frameRawSema);
@@ -568,7 +570,7 @@ void * processorThread(void * notUsed){
     sem_getvalue(&frameMatSema, &value);
     if (value < MIN_BUFFER_SIZE){
       frameMat.timestamp = frameRaw.timestamp;
-      frameMat.image = imdecode(frameRaw.image, CV_LOAD_IMAGE_COLOR);
+      frameMat.image = frameRaw.image;
 
       undistortImage(frameMat.image);
 

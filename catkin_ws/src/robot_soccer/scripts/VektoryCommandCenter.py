@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# This file is meant to be run from the vision computer, not on the Odroid.
+
 from param import *
 from Tkinter import *
 import math
@@ -7,7 +9,7 @@ import rospy
 from robot_soccer.srv import *
 import cPickle as pickle
 
-REFRESH_RATE = 1000
+REFRESH_RATE = 100
 
 class Field(Frame):
     def sendCommandCenter(self,command):
@@ -19,15 +21,15 @@ class Field(Frame):
 
     def key(self,event):
         keyPressed = event.char
-        if keyPressed == 'g':
+        if keyPressed == 'g': # Run the "Play" strategy
           self.sendCommandCenter(2)
-        elif keyPressed == 's':
+        elif keyPressed == 's': # Stop
           self.sendCommandCenter(1)
-        elif keyPressed == 'c':
+        elif keyPressed == 'c': # Go To Center
           self.sendCommandCenter(3)
-        elif keyPressed == 'p':
+        elif keyPressed == 'p': # Go to starting position
           self.sendCommandCenter(4)
-        elif keyPressed == 't':
+        elif keyPressed == 't': # Run the "Test" strategy
           self.sendCommandCenter(5)
         print "pressed", repr(event.char)
 

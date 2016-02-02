@@ -668,9 +668,8 @@ int main(int argc, char* argv[]) {
 
 
   /************************************************************************/
-	//start an infinite loop where webcam feed is copied to cameraFeed matrix
-	//all of our operations will be performed within this loop
-  capture.release();
+  //start an infinite loop where webcam feed is copied to cameraFeed matrix
+  //all of our operations will be performed within this loop
 
   pthread_t parser;
   pthread_t processor;

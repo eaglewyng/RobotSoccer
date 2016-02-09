@@ -130,6 +130,9 @@ class Vektory:
     desired_x = x
     desired_y = y
 
+    print("desired (x, y) = ({}, {})").format(desired_x, desired_y)
+    print("my pos (x, y, t) = ({}, {}, {})").format(self.robotLocation.x, self.robotLocation.y, self.robotLocation.theta)
+
     vektor_x = (desired_x-self.robotLocation.x) * SCALE_VEL
     vektor_y = (desired_y-self.robotLocation.y) * SCALE_VEL
 
@@ -137,6 +140,7 @@ class Vektory:
     angle = math.atan2(lookAtPoint.y-self.robotLocation.y, lookAtPoint.x-self.robotLocation.x)
 
     delta_angle = angle-self.robotLocation.theta
+    print("delta angle = {}").format(delta_angle*180/math.pi)
 
     bestDelta = math.atan2(math.sin(delta_angle), math.cos(delta_angle)) * SCALE_OMEGA
     #print bestDelta
@@ -151,6 +155,9 @@ class Vektory:
       bestDelta = MAX_DELTA
     elif abs(bestDelta) < MIN_DELTA:
       bestDelta = 0
+
+    print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
+
     self.sendCommand(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
 
   def updateLocations(self):

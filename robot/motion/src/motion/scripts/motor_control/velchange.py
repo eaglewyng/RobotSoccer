@@ -27,9 +27,15 @@ def goXYOmega(x,y,omega,limit=False):
       x = x * scale
       y = y * scale
   v1,v2,v3 = mat.getWheelVel(x,y,omega)
+
+  print("wheel vel ({}, {}, {})").format(v1, v2, v3)
+
   s1 = radianToQpps(v1)
   s2 = radianToQpps(v2)
   s3 = radianToQpps(v3)
+
+  print("qpps ({}, {}, {})\n\n").format(s1, s2, s3)
+
   SetM1Speed(128,s1)
   SetM2Speed(128,s2)
   SetM1Speed(129,s3)

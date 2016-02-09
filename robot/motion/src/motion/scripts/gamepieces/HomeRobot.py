@@ -29,14 +29,16 @@ class RobotCommand():
     self.mag = math.sqrt(vel_x**2+vel_y**2)
     self.angle = math.atan2(vel_y,vel_x)
     self.expiration = 0
-  
+
+    print("robot vel (x, y, w) = ({}, {}, {})").format(vel_x, vel_y, omega)
+
   def execute(self):
     velchange.goXYOmega(self.vel_x, self.vel_y, self.omega)
     self.timestamp = getTime()
-  
+
   def getCommandToSend(self):
     return (self.timestamp, self.vel_x, self.vel_y, self.omega)
-  
+
   def isKill(self):
     return self.vel_x == 0 and self.vel_y == 0 and self.omega == 0
 
@@ -55,21 +57,21 @@ class HomeRobot:
     self.commandQueue = deque()
     self.upToLastCommandCache = None
     self.realTimeCache = None
-  
+
   TIMESTEP = .01
-  
+
   def pendBusy(self):
     while self.isBusy:
       pass
     self.isBusy = True;
-    
+
   def postBusy(self):
     self.isBusy = False;
-    
+
   def getLocationFromHistory(self, stopTime = -1):
     location = copy.deepcopy(self.previousLocation)
     done = False
-    
+
     for command in self.commandQueue:
       while location.timestamp < command.expiration:
         motionAngle = location.theta + command.angle
@@ -84,14 +86,14 @@ class HomeRobot:
           break
       if done:
         break
-        
+
     return location
-  
+
   def getLocation(self,timestamp = -1):
     if timestamp <= 0:
       timestamp = getTime()
     self.pendBusy()
-    
+
     # case where request is before our known history
     if timestamp < self.previousLocation.timestamp:
       location = copy.deepcopy(self.previousLocation)
@@ -100,7 +102,7 @@ class HomeRobot:
       location.timestamp = timestamp
       return location
 #      raise HomeError("Request for location before beginning of history")
-    
+
     # case where timestamp is between beginning of history and first command.
     if len(self.commandQueue) == 0 or self.commandQueue[0].timestamp >= timestamp:
       location = copy.deepcopy(self.previousLocation)
@@ -108,28 +110,28 @@ class HomeRobot:
       #nothing has changed from this timestamp and the beginning of history.
       location.timestamp = timestamp
       return location
-    
+
     # case request is before the last command
     if self.commandQueue[-1].timestamp > timestamp:
       location = getLocationFromHistory(timestamp)
       self.postBusy()
       return location
-    
+
     # case timestamp is >= self.commandQueue[-1].timestamp
-    
+
     # updating cache
     if self.upToLastCommandCache == None:
       # expire real time cache
       self.realTimeCache = None
       # update cache
       self.upToLastCommandCache = self.getLocationFromHistory(timestamp)
-    
+
     #cache selection
     if self.realTimeCache != None and self.realTimeCache.timestamp <= timestamp:
       location = copy.deepcopy(self.realTimeCache)
     else:
       location = copy.deepcopy(self.upToLastCommandCache)
-    
+
     # propagation of last command until requested time
     command = self.commandQueue[-1]
     while location.timestamp < timestamp:
@@ -142,17 +144,17 @@ class HomeRobot:
     self.realTimeCache = copy.deepcopy(location)
     self.postBusy()
     return location
-    
+
   def addCommand(self,command):
     self.pendBusy()
-    
+
     # case where command is before beginning of history
     if command.timestamp < self.previousLocation.timestamp:
       if len(self.commandQueue) != 0:
         self.postBusy()
-        return 
+        return
         #raise HomeError('Recieved command out of order.')
-    
+
     # case of kill command being sent; throw out if command queue is empty or
     # if last command sent was a kill command too
     if command.isKill() and (len(self.commandQueue) == 0 or self.commandQueue[-1].isKill()):
@@ -178,16 +180,16 @@ class HomeRobot:
 
   def updateLocation(self, newLocation):
     self.pendBusy()
-    
+
     # case tried to update to before the beginning of history
     if newLocation.timestamp < self.previousLocation.timestamp:
       self.postBusy()
       raise HomeError('Tried to update with location before beginning of history')
-    
+
     # clear caches
     self.upToLastCommandCache = None
     self.realTimeCache = None
-    
+
     # remove expired commands.
     while len(self.commandQueue) > 0:
       commandIsKill = self.commandQueue[0].isKill()
@@ -199,6 +201,6 @@ class HomeRobot:
 
     # update previous location
     self.previousLocation = newLocation
-        
+
     self.postBusy()
-      
+

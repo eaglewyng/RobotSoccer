@@ -52,7 +52,7 @@ mSub = matrix( [[s1x,s1y,(s1y*r1x - s1x*r1y)],
 M = realWorldOffset*(1.0/s)*mSub
 
 R = lambda theta: matrix( [[math.cos(theta),math.sin(theta),0.0],
-             [-math.sin(theta),math.cos(theta),0.0],
+             [math.sin(theta),-math.cos(theta),0.0],
              [0.0,0.0,1.0]] )
 
 

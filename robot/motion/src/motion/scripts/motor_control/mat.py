@@ -46,7 +46,7 @@ s3y = math.sin(s3theta)
 mSub = matrix( [[s1x,s1y,(s1y*r1x - s1x*r1y)],
                 [s2x,s2y,(s2y*r2x - s2x*r2y)],
                 [s3x,s3y,(s3y*r3x - s3x*r3y)]] )
-                
+
 #print mSub
 
 M = realWorldOffset*(1.0/s)*mSub
@@ -62,19 +62,19 @@ def getWheelVel(x,y,omega):
   desired = matrix( [[x],
                      [y],
                      [omega]] )
-                   
+
   result = M*desired
 
   return result.getA()[0][0], result.getA()[1][0], result.getA()[2][0]
-  
+
 def getXYOmega(v1,v2,v3):
   velocity = matrix( [[v1],
                       [v2],
                       [v3]] )
   Minv = linalg.inv(M)
-  
+
   result = Minv*velocity
-  
+
   return result.getA()[0][0], result.getA()[1][0], result.getA()[2][0]
 
 def getRobotXYOmega(x,y,omega,theta):
@@ -83,7 +83,7 @@ def getRobotXYOmega(x,y,omega,theta):
                      [omega]] )
   desired = R(theta)*desired
   return desired
-  
+
 def getRobotXYOmegaAsTuple(x, y, omega, theta):
   desired = getRobotXYOmega(x, y, omega, theta)
   asArray = desired.getA()
@@ -91,14 +91,14 @@ def getRobotXYOmegaAsTuple(x, y, omega, theta):
 
 def getWheelVelTheta(x,y,omega,theta):
   desired = getRobotXYOmega(x, y, omega, theta)
-                   
+
   result = M*desired
 
   return result.getA()[0][0], result.getA()[1][0], result.getA()[2][0]
 
 def radianToQpps(radian):
   result = int(radian * 19820.0 / (2*math.pi))
-  #print result 
+  #print result
   if result > 308420:
     return 308420
   elif result < -308420:

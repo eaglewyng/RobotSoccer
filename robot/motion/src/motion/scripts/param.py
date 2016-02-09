@@ -18,6 +18,7 @@ def getTime():
 
 MAX_SPEED = .7
 MIN_SPEED = .1
+MAX_DELTA = 2
 MIN_DELTA = .1
 SCALE_VEL = 5.0
 SCALE_OMEGA = 3.0

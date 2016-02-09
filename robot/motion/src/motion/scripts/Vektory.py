@@ -147,7 +147,9 @@ class Vektory:
       vektor_x = 0
       vektor_y = 0
 
-    if bestDelta < MIN_DELTA and bestDelta > -MIN_DELTA:
+    if abs(bestDelta) > MAX_DELTA:
+      bestDelta = MAX_DELTA
+    elif abs(bestDelta) < MIN_DELTA:
       bestDelta = 0
     self.sendCommand(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
 

@@ -306,8 +306,8 @@ class Vektory:
         self.stopped = True;
     elif self.gameState == GameState.center:
       self.updateLocations()
-      if abs(self.robotLocation.x) > .1 or abs(self.robotLocation.y) > .1 or abs(self.robotLocation.theta) > .1:
-        self.go_to_point(CENTER.x, CENTER.y, HOME_GOAL)
+      if abs(self.robotLocation.x) > CENTER_THRESHOLD or abs(self.robotLocation.y) > CENTER_THRESHOLD:
+        self.go_to_point(CENTER.x, CENTER.y, None)
       elif self.stopped == False:
         self.sendCommand(0,0,0);
         self.stopped = True;

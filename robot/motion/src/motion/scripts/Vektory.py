@@ -62,10 +62,10 @@ class Vektory:
     command = RobotCommand(-1,vel_x, vel_y, omega, theta)
     command.execute()
     sendCommand = rospy.ServiceProxy('commandSent', commandsent)
-    try:
-      resp1 = sendCommand(*(command.getCommandToSend()))
-    except rospy.ServiceException as exc:
-      print("Service did not process request: " + str(exc))
+    # try:
+    #   resp1 = sendCommand(*(command.getCommandToSend()))
+    # except rospy.ServiceException as exc:
+    #   print("Service did not process request: " + str(exc))
 
   def rotateAroundBallToAngle(self,targetAngle):
     #lookAtPoint = self.ball.point

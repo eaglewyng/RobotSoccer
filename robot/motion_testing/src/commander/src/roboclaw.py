@@ -16,24 +16,24 @@ def readbyte():
 	global checksum
 	val = struct.unpack('>B',port.read(1));
 	checksum += val[0]
-	return val[0];	
+	return val[0];
 def readsbyte():
 	global checksum
 	val = struct.unpack('>b',port.read(1));
 	checksum += val[0]
-	return val[0];	
+	return val[0];
 def readword():
 	global checksum
 	val = struct.unpack('>H',port.read(2));
 	checksum += (val[0]&0xFF)
 	checksum += (val[0]>>8)&0xFF
-	return val[0];	
+	return val[0];
 def readsword():
 	global checksum
 	val = struct.unpack('>h',port.read(2));
 	checksum += val[0]
 	checksum += (val[0]>>8)&0xFF
-	return val[0];	
+	return val[0];
 def readlong():
 	global checksum
 	val = struct.unpack('>L',port.read(4));
@@ -41,7 +41,7 @@ def readlong():
 	checksum += (val[0]>>8)&0xFF
 	checksum += (val[0]>>16)&0xFF
 	checksum += (val[0]>>24)&0xFF
-	return val[0];	
+	return val[0];
 def readslong():
 	global checksum
 	val = struct.unpack('>l',port.read(4));
@@ -49,7 +49,7 @@ def readslong():
 	checksum += (val[0]>>8)&0xFF
 	checksum += (val[0]>>16)&0xFF
 	checksum += (val[0]>>24)&0xFF
-	return val[0];	
+	return val[0];
 
 def writebyte(val):
 	global checksum
@@ -203,7 +203,7 @@ def readM2speed(addr):
 	if crc==readbyte()&0x7F:
 		return enc
 	return -1;
- 
+
 def ResetEncoderCnts(addr):
 	sendcommand(addr,20)
 	writebyte(checksum&0x7F);
@@ -583,7 +583,7 @@ def readerrorstate():
 	if crc==readbyte()&0x7F:
 		return val
 	return -1
-	
+
 def readEncoderMode(addr):
   sendcommand(addr,91)
   mode1 = readbyte()
@@ -592,7 +592,7 @@ def readEncoderMode(addr):
   if crc==readbyte()&0x7F:
     return (mode1,mode2)
   return (-1,-1)
-  
+
 def writeSettingsToMem(addr):
   sendcommand(addr,94)
   crc = checksum&0x7F
@@ -611,12 +611,12 @@ def calibrateRoboclaws():
     qqps_m3 = 195319 # 175863 # 130377 # 154211 # 171489 # 165285 # 183906 # 181536 # 175021 # 170281 # 159700 # 161999 # 165146 # 164071
 
     read_v = readmainbattery() / 10.0
-    
+
     scale = lambda x: int(x*voltage/read_v)
     speedM1 = scale(qqps_m1)
     speedM2 = scale(qqps_m2)
     speedM3 = scale(qqps_m3)
-    
+
     SetM1pidq(128,p,i,d,speedM1)
     SetM2pidq(128,p,i,d,speedM2)
     SetM1pidq(129,p,i,d,speedM3)
@@ -643,18 +643,18 @@ cnt = 0
 #while True:
 #	cnt=cnt+1
 #	print "Count = ",cnt
-#	
+#
 #	print "Error State:",repr(readerrorstate())
 #
 #	print "Temperature:",readtemperature()/10.0
 #
 #	print "Main Battery:",readmainbattery()/10.0
-#	
+#
 #	print "Logic Battery:",readlogicbattery()/10.0
 #
 #	m1cur, m2cur = readcurrents();
 #	print "Current M1: ",m1cur/100.0," M2: ",m2cur/100.0
-#	
+#
 #	min, max = readlogicbatterysettings()
 #	print "Logic Battery Min:",min/10.0," Max:",max/10.0
 #

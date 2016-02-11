@@ -177,6 +177,14 @@ class Vektory:
   def commandRoboclaws(self):
     velchange.goXYOmegaTheta(self.vel_x,self.vel_y,self.omega,self.robotLocation.theta)
 
+  def defensiveStrats(self):
+    self.updateLocations()
+    lookAtPoint = self.ball.point
+    DEFENSIVE_X_COORD = HOME_GOAL.x - .3
+    DEFENSIVE_Y_COORD = self.ball.point.y
+    self.go_to_point(DEFENSIVE_X_COORD, self.ball.point.y, lookAtPoint)
+
+
   def old(self):
     self.updateLocations()
     if self.testState == TestState.check:
@@ -308,7 +316,8 @@ class Vektory:
     if self.gameState == GameState.play:
       self.play()
     elif self.gameState == GameState.test:
-      self.test()
+      #self.test()
+      self.defensiveStrats()
     elif self.gameState == GameState.stop:
       if self.stopped == False:
         self.sendCommand(0,0,0);

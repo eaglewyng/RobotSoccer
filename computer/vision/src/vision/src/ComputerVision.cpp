@@ -543,6 +543,7 @@ void * parserThread(void * notUsed){
     timestamp.nsec = 0;
     frame.timestamp = timestamp;
     capture.read(frame.image);
+    flip(frame.image, frame.image, -1);
 
     int value;
     sem_getvalue(&frameRawSema, &value);

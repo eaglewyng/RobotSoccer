@@ -158,6 +158,41 @@ class Vektory:
       bestDelta = MAX_DELTA
     elif abs(bestDelta) < MIN_DELTA:
       bestDelta = 0
+  def go_to_point_maxspeed(self,x, y, lookAtPoint=None):
+    #print "go_to_point"
+    if lookAtPoint == None:
+      lookAtPoint = self.ball.point
+    desired_x = x
+    desired_y = y
+
+    print("desired (x, y) = ({}, {})").format(desired_x, desired_y)
+    print("my pos (x, y, t) = ({}, {}, {})").format(self.robotLocation.x, self.robotLocation.y, self.robotLocation.theta)
+
+    vektor_x = (desired_x-self.robotLocation.x) * SCALE_VEL
+    vektor_y = (desired_y-self.robotLocation.y) * SCALE_VEL
+
+    mag = math.sqrt(vektor_x**2+vektor_y**2)
+    angle = math.atan2(lookAtPoint.y-self.robotLocation.y, lookAtPoint.x-self.robotLocation.x)
+
+    delta_angle = angle-self.robotLocation.theta
+    print("delta angle = {}").format(delta_angle*180/math.pi)
+
+    bestDelta = math.atan2(math.sin(delta_angle), math.cos(delta_angle)) * SCALE_OMEGA
+    #print bestDelta
+    vektor_x = (MAX_SPEED/mag)*vektor_x
+    vektor_y = (MAX_SPEED/mag)*vektor_y
+    #if mag >= MAX_SPEED:
+    #  vektor_x = (MAX_SPEED/mag)*vektor_x
+    #  vektor_y = (MAX_SPEED/mag)*vektor_y
+    #elif mag < MIN_SPEED:
+    #  vektor_x = 0
+    #  vektor_y = 0
+
+    if abs(bestDelta) > MAX_DELTA:
+      bestDelta = MAX_DELTA
+    elif abs(bestDelta) < MIN_DELTA:
+      bestDelta = 0
+    bestDelta = 0
 
     print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
 
@@ -183,9 +218,13 @@ class Vektory:
   def defensiveStrats(self):
     self.updateLocations()
     lookAtPoint = self.ball.point
-    DEFENSIVE_X_COORD = HOME_GOAL.x - .3
+    DEFENSIVE_X_COORD = HOME_GOAL.x - .6
     DEFENSIVE_Y_COORD = self.ball.point.y
-    self.go_to_point(DEFENSIVE_X_COORD, self.ball.point.y, lookAtPoint)
+
+    DEFENSIVE_Y_COORD = min(DEFENSIVE_Y_COORD, HEIGHT_FIELD_METER/4)
+    DEFENSIVE_Y_COORD = max(DEFENSIVE_Y_COORD, -HEIGHT_FIELD_METER/4)
+
+    self.go_to_point_maxspeed(DEFENSIVE_X_COORD, DEFENSIVE_Y_COORD, lookAtPoint)
 
 
   def old(self):

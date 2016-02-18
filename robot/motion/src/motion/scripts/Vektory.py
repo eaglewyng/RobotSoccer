@@ -23,6 +23,7 @@ class GameState(Enum):
   center = 3
   startPosition = 4
   test = 5
+  goToPoint = 6
 
 class State(Enum):
   rushGoal = 1
@@ -46,6 +47,8 @@ class Vektory:
     self.locations = None
     self.ball = Ball()
     self.robotLocation = None
+    self.clickLocationX = 0
+    self.clickLocationY = 0
     self.distanceToBall = 0
     self.state = State.check
     self.rotate = Rotate.none
@@ -336,6 +339,13 @@ class Vektory:
       elif self.stopped == False:
         self.sendCommand(0,0,0);
         self.stopped = True;
+    elif self.gameState == GameState.goToPoint:
+      self.updateLocations()
+      if abs(self.robotLocation.x - self.clickLocationX) > CENTER_THRESHOLD/5 or abs(self.robotLocation.y - self.clickLocationY) > CENTER_THRESHOLD/5:
+        self.go_to_point(self.clickLocationX, self.clickLocationY)
+      elif self.stopped == False:
+        self.sendCommand(0, 0, 0)
+        self.stopped = True
 
 
   def executeCommCenterCommand(self,req):
@@ -356,6 +366,11 @@ class Vektory:
     elif req.comm == 5:
       self.testState = TestState.check
       self.gameState = GameState.test
+    elif req.comm == 6:
+      self.gameState = GameState.goToPoint
+      self.stopped = False
+      self.clickLocationX = pixelToMeter(req.x)
+      self.clickLocationY = pixelToMeter(req.y)
 
     return commcenterResponse()
 

@@ -61,6 +61,8 @@ class Vektory:
     self.stopped = True
     self.testState = TestState.check
 
+    self.lastBall = Ball()
+
   def sendCommand(self, vel_x, vel_y, omega, theta = 0):
     command = RobotCommand(-1,vel_x, vel_y, omega, theta)
     command.execute()
@@ -158,6 +160,12 @@ class Vektory:
       bestDelta = MAX_DELTA
     elif abs(bestDelta) < MIN_DELTA:
       bestDelta = 0
+    bestDelta = 0
+
+    print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
+
+    self.sendCommand(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
+
   def go_to_point_maxspeed(self,x, y, lookAtPoint=None):
     #print "go_to_point"
     if lookAtPoint == None:
@@ -385,6 +393,11 @@ class Vektory:
       elif self.stopped == False:
         self.sendCommand(0, 0, 0)
         self.stopped = True
+      # if abs(self.robotLocation.x - ) > CENTER_THRESHOLD or abs(self.robotLocation.y) > CENTER_THRESHOLD:
+      #   self.go_to_point(CENTER.x, CENTER.y, None)
+      # elif self.stopped == False:
+      #   self.sendCommand(0,0,0);
+      #   self.stopped = True;
 
 
   def executeCommCenterCommand(self,req):
@@ -429,3 +442,21 @@ class Vektory:
 if __name__ == '__main__':
   winner = Vektory()
   winner.go()
+
+
+  def ballPrediction(self, time_sec):
+    sample_period = 1.0/30.0; #camera takes 30 frames per second
+
+    ball_vector_x = (self.ball.x - self.lastBall.x) #x distance traveled
+    ball_vector_y = (self.ball.y - self.lastBall.y) #y distance traveled
+    ball_mag = math.sqrt(ball_vector_x**2 + ball_vector_y**2)
+    ball_angle = atan2(ball_vector_y/ball_vector_x)
+    ball_velocity = ball_mag/sample_period
+
+    #time_sec is saying where will the ball be in 'time_sec' amount of seconds
+    ball_new_position_x = ball_vector_x*time_sec
+    ball_new_position_y = ball_vector_y*time_sec
+
+
+    self.lastBall.x = self.ball.x
+    self.lastBall.y = self.ball.y

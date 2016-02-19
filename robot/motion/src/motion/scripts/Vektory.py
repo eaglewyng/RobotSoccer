@@ -62,6 +62,7 @@ class Vektory:
     self.testState = TestState.check
 
     self.lastBall = Ball()
+    self.lastTimeStamp = -1
 
   def sendCommand(self, vel_x, vel_y, omega, theta = 0):
     command = RobotCommand(-1,vel_x, vel_y, omega, theta)
@@ -445,7 +446,13 @@ if __name__ == '__main__':
 
 
   def ballPrediction(self, time_sec):
-    sample_period = 1.0/30.0; #camera takes 30 frames per second
+
+    if self.lastTimeStamp == -1:
+      return (0,0)
+
+    newTimeStamp = time.time()
+    sample_period = newTimeStamp - lastTimeStamp
+    self.lastTimeStamp = newTimeStamp
 
     ball_vector_x = (self.ball.x - self.lastBall.x) #x distance traveled
     ball_vector_y = (self.ball.y - self.lastBall.y) #y distance traveled
@@ -460,3 +467,5 @@ if __name__ == '__main__':
 
     self.lastBall.x = self.ball.x
     self.lastBall.y = self.ball.y
+
+    return (ball_new_position_x, ball_new_position_y)

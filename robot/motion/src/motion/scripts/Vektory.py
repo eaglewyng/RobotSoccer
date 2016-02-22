@@ -63,6 +63,8 @@ class Vektory:
 
     self.lastBall = Ball()
     self.lastTimeStamp = -1
+    self.currBallXVel = 0
+    self.currBallYVel = 0
 
   def sendCommand(self, vel_x, vel_y, omega, theta = 0):
     command = RobotCommand(-1,vel_x, vel_y, omega, theta)
@@ -218,6 +220,9 @@ class Vektory:
         self.ball.point.y = self.locations.ball.y
         self.distanceToBall = math.sqrt((self.robotLocation.x-self.locations.ball.x)**2+(self.robotLocation.y-self.locations.ball.y)**2)
         #print 'time: %f x: %f  y: %f  theta: %f' %(robotLocation.timestamp, robotLocation.x, robotLocation.y, robotLocation.theta)
+        #update predictions
+        self.updateBallPrediction()
+
     except rospy.ServiceException, e:
         print "service call failed: %s"%e
 
@@ -226,9 +231,11 @@ class Vektory:
 
   def defensiveStrats(self):
     self.updateLocations()
+    predBallXY = self.ballPrediction(.5)	#TODO change this to be parameterizable somehow
     lookAtPoint = self.ball.point
     DEFENSIVE_X_COORD = HOME_GOAL.x - .6
-    DEFENSIVE_Y_COORD = self.ball.point.y
+    # DEFENSIVE_Y_COORD = self.ball.point.y
+    DEFENSIVE_Y_COORD = predBallXY(1)
 
     DEFENSIVE_Y_COORD = min(DEFENSIVE_Y_COORD, HEIGHT_FIELD_METER/4)
     DEFENSIVE_Y_COORD = max(DEFENSIVE_Y_COORD, -HEIGHT_FIELD_METER/4)
@@ -444,12 +451,7 @@ if __name__ == '__main__':
   winner = Vektory()
   winner.go()
 
-
-  def ballPrediction(self, time_sec):
-
-    if self.lastTimeStamp == -1:
-      return (0,0)
-
+  def updateBallPrediction(self):
     newTimeStamp = time.time()
     sample_period = newTimeStamp - lastTimeStamp
     self.lastTimeStamp = newTimeStamp
@@ -460,12 +462,17 @@ if __name__ == '__main__':
     ball_angle = atan2(ball_vector_y/ball_vector_x)
     ball_velocity = ball_mag/sample_period
 
-    #time_sec is saying where will the ball be in 'time_sec' amount of seconds
-    ball_new_position_x = ball_vector_x*time_sec
-    ball_new_position_y = ball_vector_y*time_sec
+    self.currBallXVel = ball_vector_x / sample_period
+    self.currBallYVel = ball_vector_y / sample_period
 
 
     self.lastBall.x = self.ball.x
     self.lastBall.y = self.ball.y
 
+    
+
+  def ballPrediction(self, time_sec):
+    #time_sec is saying where will the ball be in 'time_sec' amount of seconds
+    ball_new_position_x = self.currBallXVel*time_sec
+    ball_new_position_y = self.currBallYVel*time_sec
     return (ball_new_position_x, ball_new_position_y)

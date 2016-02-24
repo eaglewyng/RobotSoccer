@@ -231,16 +231,17 @@ class Vektory:
 
   def defensiveStrats(self):
     self.updateLocations()
-    predBallXY = self.ballPrediction(.5)	#TODO change this to be parameterizable somehow
+    predBallXY = self.ballPrediction(1)	#TODO change this to be parameterizable somehow
     lookAtPoint = self.ball.point
-    DEFENSIVE_X_COORD = HOME_GOAL.x - .6
+    DEFENSIVE_X_COORD = HOME_GOAL.x - 0.1
     # DEFENSIVE_Y_COORD = self.ball.point.y
-    DEFENSIVE_Y_COORD = predBallXY(1)
+    DEFENSIVE_Y_COORD = predBallXY[1]
 
     DEFENSIVE_Y_COORD = min(DEFENSIVE_Y_COORD, HEIGHT_FIELD_METER/4)
     DEFENSIVE_Y_COORD = max(DEFENSIVE_Y_COORD, -HEIGHT_FIELD_METER/4)
 
-    self.go_to_point_maxspeed(DEFENSIVE_X_COORD, DEFENSIVE_Y_COORD, lookAtPoint)
+    if self.ball.point.x < self.robotLocation.x:
+      self.go_to_point(DEFENSIVE_X_COORD, DEFENSIVE_Y_COORD, lookAtPoint)
 
 
   def old(self):

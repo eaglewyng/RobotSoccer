@@ -460,32 +460,29 @@ class Vektory:
     s.enter(0,1,self.executionLoop,(s,))
     s.run()
 
-if __name__ == '__main__':
-  winner = Vektory()
-  winner.go()
-
   def updateBallPrediction(self):
     newTimeStamp = time.time()
-    sample_period = newTimeStamp - lastTimeStamp
+    sample_period = newTimeStamp - self.lastTimeStamp
     self.lastTimeStamp = newTimeStamp
 
-    ball_vector_x = (self.ball.x - self.lastBall.x) #x distance traveled
-    ball_vector_y = (self.ball.y - self.lastBall.y) #y distance traveled
+    ball_vector_x = (self.ball.point.x - self.lastBall.point.x) #x distance traveled
+    ball_vector_y = (self.ball.point.y - self.lastBall.point.y) #y distance traveled
     ball_mag = math.sqrt(ball_vector_x**2 + ball_vector_y**2)
-    ball_angle = atan2(ball_vector_y/ball_vector_x)
+    ball_angle = math.atan2(ball_vector_y, ball_vector_x)
     ball_velocity = ball_mag/sample_period
 
     self.currBallXVel = ball_vector_x / sample_period
     self.currBallYVel = ball_vector_y / sample_period
 
-
-    self.lastBall.x = self.ball.x
-    self.lastBall.y = self.ball.y
-
-    
+    self.lastBall.point.x = self.ball.point.x
+    self.lastBall.point.y = self.ball.point.y
 
   def ballPrediction(self, time_sec):
     #time_sec is saying where will the ball be in 'time_sec' amount of seconds
-    ball_new_position_x = self.currBallXVel*time_sec
-    ball_new_position_y = self.currBallYVel*time_sec
+    ball_new_position_x = self.ball.point.x + self.currBallXVel*time_sec
+    ball_new_position_y = self.ball.point.y + self.currBallYVel*time_sec
     return (ball_new_position_x, ball_new_position_y)
+
+if __name__ == '__main__':
+  winner = Vektory()
+  winner.go()

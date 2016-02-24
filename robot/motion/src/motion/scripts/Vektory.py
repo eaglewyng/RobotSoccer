@@ -349,26 +349,38 @@ class Vektory:
 
     #check if ball is behind robot
     if self.state == State.getBehindBall:
-      #robot in front of ball
-      if MotionSkills.isBallBehindRobot(self.robotLocation, self.ball.point):
-        # This gets a point beside the ball perpendicular to the line of the ball and the goal
-        #point = getPointBesideBall(self.robotLocation, self.ball.point, DIS_BEHIND_BALL)
-
-        point = Point(self.ball.point.x)
-        # if robot above ball
-        if self.ball.point.y < self.robotLocation.y:
-            point.y = self.ball.point.y + DIS_BEHIND_BALL
-        else:
-            point.y = self.ball.point.y - DIS_BEHIND_BALL
-
-        self.go_direction(point)
-        #Move to the side of the ball
-        #self.go_to_point(point.x,point.y)
-      #robot behind ball
+      desiredPoint = MotionSkills.getPointBehindBall(self.ball)
+      distFromPoint = math.sqrt((self.robotLocation.x - desiredPoint.x)**2
+                              + (self.robotLocation.y - desiredPoint.y)**2)
+      if distFromPoint < 0.1:
+        self.state = State.rushGoal
+        self.stopRushingGoalTime = getTime() + 1000
       else:
-        behindTheBallPoint = MotionSkills.getPointBehindBall(self.ball)
-        self.go_direction(behindTheBallPoint)
-        self.state = State.check
+        self.go_direction(desiredPoint)
+
+      # print("GETTING BEHIND BALL")
+      # #robot in front of ball
+      # if MotionSkills.isBallBehindRobot(self.robotLocation, self.ball.point):
+      #   print("DONE GOOFED")
+      #   # This gets a point beside the ball perpendicular to the line of the ball and the goal
+      #   #point = getPointBesideBall(self.robotLocation, self.ball.point, DIS_BEHIND_BALL)
+
+      #   point = Point(self.ball.point.x)
+      #   # if robot above ball
+      #   if self.ball.point.y < self.robotLocation.y:
+      #       point.y = self.ball.point.y + DIS_BEHIND_BALL
+      #   else:
+      #       point.y = self.ball.point.y - DIS_BEHIND_BALL
+
+      #   self.go_direction(point)
+      #   #Move to the side of the ball
+      #   #self.go_to_point(point.x,point.y)
+      # #robot behind ball
+      # else:
+      #   print("GOT BEHIND BALL")
+      #   behindTheBallPoint = MotionSkills.getPointBehindBall(self.ball)
+      #   self.go_direction(behindTheBallPoint)
+      #   self.state = State.check
 
   def executionLoop(self, scheduler):
     scheduler.enter(.05, 1, self.executionLoop,(scheduler,))

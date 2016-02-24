@@ -184,7 +184,7 @@ class HomeRobot:
     # case tried to update to before the beginning of history
     if newLocation.timestamp < self.previousLocation.timestamp:
       self.postBusy()
-      raise HomeError('Tried to update with location before beginning of history')
+      # raise HomeError('Tried to update with location before beginning of history')
 
     # clear caches
     self.upToLastCommandCache = None

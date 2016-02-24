@@ -382,6 +382,15 @@ class Vektory:
       #   self.go_direction(behindTheBallPoint)
       #   self.state = State.check
 
+  def scoreGoal(self):
+    self.updateLocations()
+    self.commandRoboclaws()
+
+    #1. get behind ball
+
+
+    #2. get ball into goal
+
   def executionLoop(self, scheduler):
     scheduler.enter(.05, 1, self.executionLoop,(scheduler,))
     if self.gameState == GameState.play:

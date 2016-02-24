@@ -10,7 +10,7 @@ from motor_control import mat
 from motor_control import velchange
 from kalman_filter.Locations import Locations
 from gamepieces.HomeRobot import *
-from kalman_filter.Ball import *
+from gamepieces.Ball import *
 from collections import deque
 import param
 import cPickle as pickle

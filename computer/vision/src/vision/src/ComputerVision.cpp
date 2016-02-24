@@ -543,7 +543,7 @@ void * parserThread(void * notUsed){
     timestamp.nsec = 0;
     frame.timestamp = timestamp;
     capture.read(frame.image);
-    flip(frame.image, frame.image, -1);
+    // flip(frame.image, frame.image, -1);
 
     int value;
     sem_getvalue(&frameRawSema, &value);
@@ -644,7 +644,7 @@ int main(int argc, char* argv[]) {
   Mat BGR;// BGR mat
 
 	//video capture object to acquire webcam feed
-	const string videoStreamAddress = "http://192.168.1.10:8080/stream?topic=/image&dummy=param.mjpg";
+	const string videoStreamAddress = "http://192.168.1.78:8080/stream?topic=/image&dummy=param.mjpg";
   capture.open(videoStreamAddress); //set to 0 to use the webcam
 
 	//set height and width of capture frame

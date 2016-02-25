@@ -227,6 +227,7 @@ class Vektory:
         print "service call failed: %s"%e
 
   def commandRoboclaws(self):
+    print("cmd robo: ({}, {}, {}, {})").format(self.vel_x, self.vel_y, self.omega, self.robotLocation.theta)
     velchange.goXYOmegaTheta(self.vel_x,self.vel_y,self.omega,self.robotLocation.theta)
 
   def defensiveStrats(self):
@@ -331,15 +332,18 @@ class Vektory:
       if self.robotLocation.x > pixelToMeter(345):
         self.state = State.returnToPlay
       elif (MotionSkills.isPointInFrontOfRobot(self.robotLocation,self.ball.point, 0.5, 0.04 + abs(MAX_SPEED/4))): #This offset compensates for the momentum
+        print("REALLY BEHIND BALL")
         self.state = State.rushGoal# rush goal
         self.stopRushingGoalTime = getTime() + int(2 * DIS_BEHIND_BALL/MAX_SPEED*100)
 
     if self.state == State.rushGoal:
+      print("RUSHING")
       #self.speed = RUSH_SPEED
       #self.go_to_point(HOME_GOAL.x, HOME_GOAL.y, HOME_GOAL)
       self.go_direction(HOME_GOAL)
       if getTime() >= self.stopRushingGoalTime:
         kick()
+        print("KICKED")
         self.state = State.check
 
     if self.state == State.returnToPlay:

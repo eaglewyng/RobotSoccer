@@ -105,10 +105,14 @@ Mat cameraFeed;
 Mat HSV;
 sem_t trackBallBegin;
 sem_t trackHome1Begin;
+sem_t trackHome2Begin;
 sem_t trackAway1Begin;
+sem_t trackAway2Begin;
 sem_t trackBallEnd;
 sem_t trackHome1End;
+sem_t trackHome2End;
 sem_t trackAway1End;
+sem_t trackAway2End;
 
 VideoCapture capture;
 
@@ -469,7 +473,9 @@ void runFullCalibration(VideoCapture capture) {
   calibrateField(capture);
   ball.calibrateBall(capture);
   home1.calibrateRobot(capture);
+  home2.calibrateRobot(capture);
   away1.calibrateRobot(capture);
+  away2.calibrateRobot(capture);
   saveSettings();
 }
 
@@ -620,6 +626,18 @@ void * home1Thread(void * notUsed) {
     }
 }
 
+// Track home2
+void * home2Thread(void * notUsed) {
+    Mat threshold;
+    while(1) {
+      sem_wait(&trackHome2Begin);
+      inRange(HSV,home2.getHSVmin(),home2.getHSVmax(),threshold);
+      home2.trackFilteredRobot(threshold,HSV,cameraFeed);
+      //printf("home2 tracked");
+      sem_post(&trackHome2End);
+    }
+}
+
 // Track away1
 void * away1Thread(void * notUsed) {
     Mat threshold;
@@ -629,6 +647,18 @@ void * away1Thread(void * notUsed) {
       away1.trackFilteredRobot(threshold,HSV,cameraFeed);
       //printf("Away1 tracked");
       sem_post(&trackAway1End);
+    }
+}
+
+// Track away2
+void * away2Thread(void * notUsed) {
+    Mat threshold;
+    while(1) {
+      sem_wait(&trackAway2Begin);
+      inRange(HSV,away2.getHSVmin(),away2.getHSVmax(),threshold);
+      away2.trackFilteredRobot(threshold,HSV,cameraFeed);
+      //printf("Away2 tracked");
+      sem_post(&trackAway2End);
     }
 }
 
@@ -676,20 +706,28 @@ int main(int argc, char* argv[]) {
   pthread_t processor;
   pthread_t ballT;
   pthread_t away1T;
+  pthread_t away2T;
   pthread_t home1T;
+  pthread_t home2T;
   sem_init(&frameRawSema,0,0);
   sem_init(&frameMatSema,0,0);
   sem_init(&trackBallBegin,0,0);
   sem_init(&trackHome1Begin,0,0);
+  sem_init(&trackHome2Begin,0,0);
   sem_init(&trackAway1Begin,0,0);
+  sem_init(&trackAway2Begin,0,0);
   sem_init(&trackBallEnd,0,0);
   sem_init(&trackHome1End,0,0);
+  sem_init(&trackHome2End,0,0);
   sem_init(&trackAway1End,0,0);
+  sem_init(&trackAway2End,0,0);
   pthread_create (&parser, NULL, parserThread, NULL);
   pthread_create (&processor, NULL, processorThread, NULL);
   pthread_create (&ballT, NULL, ballThread, NULL);
   pthread_create (&home1T, NULL, home1Thread, NULL);
+  pthread_create (&home2T, NULL, home2Thread, NULL);
   pthread_create (&away1T, NULL, away1Thread, NULL);
+  pthread_create (&away2T, NULL, away2Thread, NULL);
 
   unsigned int printCounter = 0;
   while(ros::ok()) {
@@ -706,10 +744,14 @@ int main(int argc, char* argv[]) {
 
     sem_post(&trackBallBegin);
     sem_post(&trackHome1Begin);
+    sem_post(&trackHome2Begin);
     sem_post(&trackAway1Begin);
+    sem_post(&trackAway2Begin);
     sem_wait(&trackBallEnd);
     sem_wait(&trackHome1End);
+    sem_wait(&trackHome2End);
     sem_wait(&trackAway1End);
+    sem_wait(&trackAway2End);
 
     if (PERF_MODE == GUI /* && !(printCounter%PRINT_FREQ) */) {
       // Show Field Outline
@@ -738,9 +780,15 @@ int main(int argc, char* argv[]) {
     coordinates.home1_x = home1.get_x_pos();
     coordinates.home1_y = home1.get_y_pos();
     coordinates.home1_theta = home1.getAngle();
+    coordinates.home2_x = home2.get_x_pos();
+    coordinates.home2_y = home2.get_y_pos();
+    coordinates.home2_theta = home2.getAngle();
     coordinates.away1_x = away1.get_x_pos();
     coordinates.away1_y = away1.get_y_pos();
     coordinates.away1_theta = away1.getAngle();
+    coordinates.away2_x = away2.get_x_pos();
+    coordinates.away2_y = away2.get_y_pos();
+    coordinates.away2_theta = away2.getAngle();
     coordinates.header.stamp = timestamp;
     // Print values to ROS console
     if (!(printCounter%PRINT_FREQ)) {

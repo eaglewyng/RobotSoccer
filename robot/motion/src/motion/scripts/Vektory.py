@@ -163,7 +163,7 @@ class Vektory:
       bestDelta = MAX_DELTA
     elif abs(bestDelta) < MIN_DELTA:
       bestDelta = 0
-    bestDelta = 0
+    # bestDelta = 0
 
     print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
 

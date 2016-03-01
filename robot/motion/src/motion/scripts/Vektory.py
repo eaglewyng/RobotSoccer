@@ -392,7 +392,7 @@ class Vektory:
     #if (robot is anywhere else)
     # goFullOffensive()
     self.updateLocations()
-    if self.robotLocation.x < pixelToMeter(WIDTH_FIELD / 4):
+    if self.ball.x > pixelToMeter(WIDTH_FIELD / 4):
       self.play()
     else:
       self.defensiveStrats()

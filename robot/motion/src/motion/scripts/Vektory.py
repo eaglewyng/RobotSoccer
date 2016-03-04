@@ -66,6 +66,10 @@ class Vektory:
     self.currBallXVel = 0
     self.currBallYVel = 0
 
+    self.integrator = {'x': 0, 'y': 0, 'w': 0}
+    self.differentiator = {'x': 0, 'y': 0, 'w': 0}
+    self.error_d1 = {'x': 0, 'y': 0, 'w': 0}
+
   def sendCommand(self, vel_x, vel_y, omega, theta = 0):
     command = RobotCommand(-1,vel_x, vel_y, omega, theta)
     command.execute()
@@ -132,6 +136,16 @@ class Vektory:
 
 
   def go_to_point(self,x, y, lookAtPoint=None):
+    if lookAtPoint == None:
+      lookAtPoint = self.ball.point
+    # angle = math.atan2(lookAtPoint.y-self.robotLocation.y, lookAtPoint.x-self.robotLocation.x)
+    vektor_x = self.pidloop(x, self.robotLocation.x, 'x')
+    vektor_y = self.pidloop(y, self.robotLocation.y, 'y')
+    vektor_w = 0 #self.pidloop(0, self.robotLocation.theta, 'w')
+    print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, vektor_w, self.robotLocation.theta)
+    self.sendCommand(vektor_x, vektor_y, vektor_w, self.robotLocation.theta)
+    return
+
     #print "go_to_point"
     if lookAtPoint == None:
       lookAtPoint = self.ball.point
@@ -495,6 +509,39 @@ class Vektory:
     ball_new_position_x = self.ball.point.x + self.currBallXVel*time_sec
     ball_new_position_y = self.ball.point.y + self.currBallYVel*time_sec
     return (ball_new_position_x, ball_new_position_y)
+
+  def pidloop(self, dest_loc, cur_loc, var):
+    def sat(x, limit):
+      out = max(x, -limit)
+      out = min(out, limit)
+      return out
+
+    Ts = .01
+    tau = .05
+    kp = 1.1
+    kd = 0#.5
+    ki = .7 #.2
+    limit = MAX_SPEED #max velocity that a wheel can put out
+
+    #compute current error
+    error = dest_loc - cur_loc
+
+    #update integrator
+    self.integrator[var] = self.integrator[var] + (Ts/2) * (error + self.error_d1[var])
+
+    #update differentiator
+    self.differentiator[var] = ((2*tau - Ts)/(2*tau + Ts))*self.differentiator[var] + (2/(2*tau + Ts))*(error - self.error_d1[var])
+
+    #u is the output velocity in a specified direction (x or y)
+    velocity = sat(kp*error + ki*self.integrator[var] + kd*self.differentiator[var], limit)
+
+    if ki != 0:
+      velocity_unsat = kp*error + ki*self.integrator[var] + kd*self.differentiator[var]
+      self.integrator[var] = self.integrator[var] + Ts/ki *(velocity - velocity_unsat)
+
+    #u is the output velocity in a specified direction (x or y)
+    print("PID", var, error, velocity)
+    return velocity
 
 if __name__ == '__main__':
   winner = Vektory()

@@ -84,7 +84,7 @@ void Ball::calibrateBall(VideoCapture capture) {
     imshow(windowName2,threshold);
 
     char pressedKey;
-    pressedKey = cvWaitKey(50); // Wait for user to press 'Enter'
+    pressedKey = cvWaitKey(5); // Wait for user to press 'Enter'
     if (pressedKey == '\n') {
        Scalar hsv_min(h_min, s_min, v_min);
        Scalar hsv_max(h_max, s_max, v_max);

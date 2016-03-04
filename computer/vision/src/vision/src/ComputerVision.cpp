@@ -449,7 +449,7 @@ void calibrateField(VideoCapture capture) {
     imshow(windowName,cameraFeed);
 
     char pressedKey;
-    pressedKey = cvWaitKey(50); // Wait for user to press 'Enter'
+    pressedKey = cvWaitKey(5); // Wait for user to press 'Enter'
     if (pressedKey == '\n') {
       field_center_y = getTrackbarPos( "Field Center Y", trackbarWindowName);
       field_center_x = getTrackbarPos( "Field Center X", trackbarWindowName);

@@ -120,7 +120,7 @@ class Field(Frame):
 
         self.parent.title("Colors")
         self.parent.bind("<Key>", self.key)
-        self.parent.bind("<Button-1>", self.callback)
+        self.parent.bind("<Button-3>", self.callback)
         self.pack(fill=BOTH, expand=1)
         self.canvas = Canvas(self)
         #field border

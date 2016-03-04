@@ -400,6 +400,19 @@ class Vektory:
       #   self.go_direction(behindTheBallPoint)
       #   self.state = State.check
 
+  def jarjar_oneRobotStrategy(self):
+    #if (robot is on the bottom quarter of our field)
+    # goFullDefensive()
+    #if (robot is anywhere else)
+    # goFullOffensive()
+    self.updateLocations()
+    if self.ball.x > pixelToMeter(WIDTH_FIELD / 4):
+      self.play()
+    else:
+      self.defensiveStrats()
+
+
+
   def scoreGoal(self):
     self.updateLocations()
     self.commandRoboclaws()

@@ -16,10 +16,10 @@ radianToDegree = lambda x: int(x * 180.0 / math.pi)
 def getTime():
   return int((time.time()-1420000000)*100.0)
 
-MAX_SPEED = 0.8
+MAX_SPEED = 2
 MIN_SPEED = .1
-MAX_DELTA = 2
-MIN_DELTA = .1
+MAX_OMEGA = 20
+MIN_OMEGA = 2
 SCALE_VEL = 1.0
 SCALE_OMEGA = 0.3
 RUSH_SPEED = .3

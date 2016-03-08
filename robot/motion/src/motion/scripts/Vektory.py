@@ -66,9 +66,12 @@ class Vektory:
     self.currBallXVel = 0
     self.currBallYVel = 0
 
-    self.integrator = {'x': 0, 'y': 0, 'w': 0}
-    self.differentiator = {'x': 0, 'y': 0, 'w': 0}
-    self.error_d1 = {'x': 0, 'y': 0, 'w': 0}
+    self.integrator = {'x': 0, 'y': 0, 'theta': 0}
+    self.differentiator = {'x': 0, 'y': 0, 'theta': 0}
+    self.error_d1 = {'x': 0, 'y': 0, 'theta': 0}
+
+    self.wat = False
+    self.last = 0
 
   def sendCommand(self, vel_x, vel_y, omega, theta = 0):
     command = RobotCommand(-1,vel_x, vel_y, omega, theta)
@@ -99,7 +102,7 @@ class Vektory:
     #bestDelta = math.atan2(math.sin(delta_angle), math.cos(delta_angle)) * SCALE_OMEGA
     #print bestDelta
 
-    #if bestDelta < MIN_DELTA and bestDelta > -MIN_DELTA:
+    #if bestDelta < MIN_OMEGA and bestDelta > -MIN_OMEGA:
     #  bestDelta = 0
     good = CIRCLE_SPEED/self.distanceToBall
     good_y = 0
@@ -138,11 +141,13 @@ class Vektory:
   def go_to_point(self,x, y, lookAtPoint=None):
     if lookAtPoint == None:
       lookAtPoint = self.ball.point
-    # angle = math.atan2(lookAtPoint.y-self.robotLocation.y, lookAtPoint.x-self.robotLocation.x)
+    desired_theta = math.atan2(lookAtPoint.y-self.robotLocation.y, lookAtPoint.x-self.robotLocation.x)
+    # print("look point = {},{}, my point = {},{}, ANGLE: {}".format(lookAtPoint.x, lookAtPoint.y, self.robotLocation.x, self.robotLocation.y, desired_theta*180/math.pi))
+
     vektor_x = self.pidloop(x, self.robotLocation.x, 'x')
     vektor_y = self.pidloop(y, self.robotLocation.y, 'y')
-    vektor_w = 0 #self.pidloop(0, self.robotLocation.theta, 'w')
-    print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, vektor_w, self.robotLocation.theta)
+    vektor_w = self.pidloop(desired_theta, self.robotLocation.theta, 'theta')
+    # print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, vektor_w, self.robotLocation.theta)
     self.sendCommand(vektor_x, vektor_y, vektor_w, self.robotLocation.theta)
     return
 
@@ -173,13 +178,15 @@ class Vektory:
       vektor_x = 0
       vektor_y = 0
 
-    if abs(bestDelta) > MAX_DELTA:
-      bestDelta = MAX_DELTA
-    elif abs(bestDelta) < MIN_DELTA:
-      bestDelta = 0
-    # bestDelta = 0
+    # print("WAT {}".format(bestDelta))
 
-    print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
+    if abs(bestDelta) > MAX_OMEGA:
+      bestDelta = MAX_OMEGA
+    elif abs(bestDelta) < MIN_OMEGA:
+      bestDelta = 0
+    bestDelta = 0
+
+    # print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
 
     self.sendCommand(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
 
@@ -213,21 +220,25 @@ class Vektory:
     #  vektor_x = 0
     #  vektor_y = 0
 
-    if abs(bestDelta) > MAX_DELTA:
-      bestDelta = MAX_DELTA
-    elif abs(bestDelta) < MIN_DELTA:
+    if abs(bestDelta) > MAX_OMEGA:
+      bestDelta = MAX_OMEGA
+    elif abs(bestDelta) < MIN_OMEGA:
       bestDelta = 0
     bestDelta = 0
 
-    print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
+    # print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
 
     self.sendCommand(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
 
   def updateLocations(self):
     try:
-        locations = rospy.ServiceProxy('locations', curlocs)
-        response = locations()
-        self.locations = pickle.loads(response.pickle)
+        if time.time() > self.last + .5:
+          print("too long START")
+        if not False:
+          locations = rospy.ServiceProxy('locations', curlocs, persistent=True)
+          response = locations()
+          self.locations = pickle.loads(response.pickle)
+          self.wat = True
         #print (self.locations.ball.x, self.locations.ball.y)
         self.robotLocation = self.locations.home1
         self.ball.point.x = self.locations.ball.x
@@ -524,20 +535,29 @@ class Vektory:
     return (ball_new_position_x, ball_new_position_y)
 
   def pidloop(self, dest_loc, cur_loc, var):
+    def getConstants(var):
+      if var == 'x' or var == 'y':
+        return (0.01, 0.05, 1.1, 0.0, 0.7, MAX_SPEED)
+      elif var == 'theta':
+        return (0.01, 0.05, 1.7, 0.0, .7, MAX_OMEGA)
     def sat(x, limit):
       out = max(x, -limit)
       out = min(out, limit)
       return out
 
-    Ts = .01
-    tau = .05
-    kp = 1.1
-    kd = 0#.5
-    ki = .7 #.2
-    limit = MAX_SPEED #max velocity that a wheel can put out
+    Ts, tau, kp, kd, ki, limit = getConstants(var)
 
     #compute current error
-    error = dest_loc - cur_loc
+    if var == 'x' or var == 'y':
+      error = dest_loc - cur_loc
+    elif var == 'theta':
+      # do weird normalization of angles
+      dest_loc = dest_loc % (2*math.pi)
+      error = dest_loc - cur_loc
+      if error > math.pi:
+        error = error - 2*math.pi
+      # negate error because positive rotation of our robot is backwards
+      error = -error
 
     #update integrator
     self.integrator[var] = self.integrator[var] + (Ts/2) * (error + self.error_d1[var])

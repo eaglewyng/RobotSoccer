@@ -143,6 +143,12 @@ void Robot::calibrateRobot(VideoCapture capture) {
    }
 }
 
+struct tooSmall: public std::unary_function<const std::vector<cv::Point_<int> >, bool> {
+    bool operator()(const std::vector<cv::Point_<int> > contour) const {
+        return contourArea(contour) <= MIN_OBJECT_AREA;
+    }
+};
+
 // Function specific for tracking robots. Will calculate the center of the robot as
 // well as the it's angle in relation to the horizontal.
 void Robot::trackFilteredRobot(Mat threshold, Mat HSV, Mat &cameraFeed) {
@@ -161,7 +167,9 @@ void Robot::trackFilteredRobot(Mat threshold, Mat HSV, Mat &cameraFeed) {
 
   //use moments method to find our filtered object
   //TODO(lukehsiao) This WILL break if there are more than 2 objects found. Segmentation has to be really good.
-  if (contours.size() == 2) {
+  if (contours.size() >= 2) {
+
+    contours.erase(std::remove_if(contours.begin(), contours.end(), tooSmall()), contours.end());
 
     // Identify the bigger object
     if (contourArea(contours[0]) < contourArea(contours[1])) {

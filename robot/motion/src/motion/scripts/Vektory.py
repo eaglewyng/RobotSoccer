@@ -256,7 +256,6 @@ class Vektory:
     velchange.goXYOmegaTheta(self.vel_x,self.vel_y,self.omega,self.robotLocation.theta)
 
   def defensiveStrats(self):
-    self.updateLocations()
     predBallXY = self.ballPrediction(1)	#TODO change this to be parameterizable somehow
     lookAtPoint = self.ball.point
     DEFENSIVE_X_COORD = HOME_GOAL.x - 0.1
@@ -271,7 +270,6 @@ class Vektory:
 
 
   def old(self):
-    self.updateLocations()
     if self.testState == TestState.check:
       if self.robotLocation.x > (self.ball.point.x-DIS_BEHIND_BALL):
         self.testState = TestState.getBehindBall
@@ -304,7 +302,6 @@ class Vektory:
 
   def test(self):
     global HOME_GOAL
-    self.updateLocations()
     HOME_GOAL = Point(HOME_GOAL.x,0)
 
     # Kick the ball off of the sides when it is too close to the side
@@ -347,7 +344,6 @@ class Vektory:
         self.testState = TestState.check
 
   def play(self):
-    self.updateLocations()
     self.commandRoboclaws()
     #print (self.robotLocation.x, self.robotLocation.y)
     #self.setSpeed()
@@ -416,7 +412,6 @@ class Vektory:
     # goFullDefensive()
     #if (robot is anywhere else)
     # goFullOffensive()
-    self.updateLocations()
     if self.ball.x > pixelToMeter(WIDTH_FIELD / 4):
       self.play()
     else:
@@ -425,7 +420,6 @@ class Vektory:
 
 
   def scoreGoal(self):
-    self.updateLocations()
     self.commandRoboclaws()
 
     #1. get behind ball
@@ -435,6 +429,7 @@ class Vektory:
 
   def executionLoop(self, scheduler):
     scheduler.enter(.05, 1, self.executionLoop,(scheduler,))
+    self.updateLocations()
     if self.gameState == GameState.play:
       self.play()
     elif self.gameState == GameState.test:
@@ -445,21 +440,18 @@ class Vektory:
         self.sendCommand(0,0,0);
         self.stopped = True;
     elif self.gameState == GameState.center:
-      self.updateLocations()
       if abs(self.robotLocation.x) > CENTER_THRESHOLD or abs(self.robotLocation.y) > CENTER_THRESHOLD:
         self.go_to_point(CENTER.x, CENTER.y, None)
       elif self.stopped == False:
         self.sendCommand(0,0,0);
         self.stopped = True;
     elif self.gameState == GameState.startPosition:
-      self.updateLocations()
       if abs(self.robotLocation.x - pixelToMeter(-120)) > .1 or abs(self.robotLocation.y - 0) > .1 or abs(self.robotLocation.theta) > .1:
         self.go_to_point(pixelToMeter(-115), 0, HOME_GOAL)
       elif self.stopped == False:
         self.sendCommand(0,0,0);
         self.stopped = True;
     elif self.gameState == GameState.goToPoint:
-      self.updateLocations()
       if abs(self.robotLocation.x - self.clickLocationX) > CENTER_THRESHOLD/5 or abs(self.robotLocation.y - self.clickLocationY) > CENTER_THRESHOLD/5:
         self.go_to_point(self.clickLocationX, self.clickLocationY)
       elif self.stopped == False:

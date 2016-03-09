@@ -267,6 +267,8 @@ class Vektory:
 
     if self.ball.point.x < self.robotLocation.x:
       self.go_to_point(DEFENSIVE_X_COORD, DEFENSIVE_Y_COORD, lookAtPoint)
+    else:
+      self.go_to_point(DEFENSIVE_X_COORD, HOME_GOAL.y, lookAtPoint)
 
 
   def old(self):

@@ -362,15 +362,14 @@ class Vektory:
     if self.state == State.rushGoal:
       print("RUSHING")
       #self.speed = RUSH_SPEED
-      #self.go_to_point(HOME_GOAL.x, HOME_GOAL.y, HOME_GOAL)
-      self.go_direction(HOME_GOAL)
+      self.go_to_point(AWAY_GOAL.x, AWAY_GOAL.y, AWAY_GOAL)
       if getTime() >= self.stopRushingGoalTime:
         kick()
         print("KICKED")
         self.state = State.check
 
     if self.state == State.returnToPlay:
-      self.go_to_point(CENTER.x, CENTER.y, HOME_GOAL)
+      self.go_to_point(CENTER.x, CENTER.y, AWAY_GOAL)
       if abs(self.robotLocation.x) < .2 and abs(self.robotLocation.y) < .2:
         self.state = State.check
 
@@ -381,9 +380,11 @@ class Vektory:
                               + (self.robotLocation.y - desiredPoint.y)**2)
       if distFromPoint < 0.1:
         self.state = State.rushGoal
-        self.stopRushingGoalTime = getTime() + 1000
+        self.stopRushingGoalTime = getTime() + 100
       else:
-        self.go_direction(desiredPoint)
+        #try go to point
+        self.go_to_point(desiredPoint.x, desiredPoint.y)
+        #self.go_direction(desiredPoint)
 
       # print("GETTING BEHIND BALL")
       # #robot in front of ball

@@ -256,7 +256,7 @@ class Vektory:
     velchange.goXYOmegaTheta(self.vel_x,self.vel_y,self.omega,self.robotLocation.theta)
 
   def defensiveStrats(self):
-    predBallXY = self.ballPrediction(1)	#TODO change this to be parameterizable somehow
+    predBallXY = self.ballPrediction(1.5)	#TODO change this to be parameterizable somehow
     lookAtPoint = self.ball.point
     DEFENSIVE_X_COORD = HOME_GOAL.x - 0.1
     # DEFENSIVE_Y_COORD = self.ball.point.y

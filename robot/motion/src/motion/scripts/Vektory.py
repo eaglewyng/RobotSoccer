@@ -346,7 +346,7 @@ class Vektory:
         self.testState = TestState.check
 
   def play(self):
-    self.commandRoboclaws()
+    # self.commandRoboclaws()
     #print (self.robotLocation.x, self.robotLocation.y)
     #self.setSpeed()
     #check if robot is ready to rush goal

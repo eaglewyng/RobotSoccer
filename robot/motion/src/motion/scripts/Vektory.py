@@ -258,7 +258,7 @@ class Vektory:
   def defensiveStrats(self):
     predBallXY = self.ballPrediction(1.5)	#TODO change this to be parameterizable somehow
     lookAtPoint = self.ball.point
-    DEFENSIVE_X_COORD = HOME_GOAL.x - 0.1
+    DEFENSIVE_X_COORD = HOME_GOAL.x - 0.5
     # DEFENSIVE_Y_COORD = self.ball.point.y
     DEFENSIVE_Y_COORD = predBallXY[1]
 

@@ -431,7 +431,7 @@ class Vektory:
     #2. get ball into goal
 
   def executionLoop(self, scheduler):
-    scheduler.enter(.05, 1, self.executionLoop,(scheduler,))
+    scheduler.enter(0.1, 1, self.executionLoop,(scheduler,))
     self.updateLocations()
     if self.gameState == GameState.play:
       self.play()

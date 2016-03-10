@@ -42,6 +42,11 @@ class Rotate(Enum):
   clockwise = 2
   counterClockwise = 3
 
+class Strategy(Enum):
+  DEFENSIVE = 1
+  OFFENSIVE = 2
+  NONE = 3
+
 class Vektory:
   def __init__(self):
     self.locations = None
@@ -62,6 +67,7 @@ class Vektory:
     self.testState = TestState.check
 
     self.lastBall = Ball()
+    self.lastHome1 = RobotLocation()
     self.lastTimeStamp = -1
     self.currBallXVel = 0
     self.currBallYVel = 0
@@ -70,8 +76,7 @@ class Vektory:
     self.differentiator = {'x': 0, 'y': 0, 'theta': 0}
     self.error_d1 = {'x': 0, 'y': 0, 'theta': 0}
 
-    self.wat = False
-    self.last = 0
+    self.strategy = Strategy.DEFENSIVE
 
   def sendCommand(self, vel_x, vel_y, omega, theta = 0):
     command = RobotCommand(-1,vel_x, vel_y, omega, theta)
@@ -147,7 +152,7 @@ class Vektory:
     vektor_x = self.pidloop(x, self.robotLocation.x, 'x')
     vektor_y = self.pidloop(y, self.robotLocation.y, 'y')
     vektor_w = self.pidloop(desired_theta, self.robotLocation.theta, 'theta')
-    # print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, vektor_w, self.robotLocation.theta)
+    print("world vel (x, y, w) = ({}, {}, {})").format(vektor_x, vektor_y, vektor_w)
     self.sendCommand(vektor_x, vektor_y, vektor_w, self.robotLocation.theta)
     return
 
@@ -232,21 +237,18 @@ class Vektory:
 
   def updateLocations(self):
     try:
-        if time.time() > self.last + .5:
-          print("too long START")
-        if not False:
-          locations = rospy.ServiceProxy('locations', curlocs, persistent=True)
-          response = locations()
-          self.locations = pickle.loads(response.pickle)
-          self.wat = True
-        #print (self.locations.ball.x, self.locations.ball.y)
+        locations = rospy.ServiceProxy('locations', curlocs, persistent=True)
+        response = locations()
+        self.locations = pickle.loads(response.pickle)
         self.robotLocation = self.locations.home1
         self.ball.point.x = self.locations.ball.x
         self.ball.point.y = self.locations.ball.y
         self.distanceToBall = math.sqrt((self.robotLocation.x-self.locations.ball.x)**2+(self.robotLocation.y-self.locations.ball.y)**2)
         #print 'time: %f x: %f  y: %f  theta: %f' %(robotLocation.timestamp, robotLocation.x, robotLocation.y, robotLocation.theta)
         #update predictions
-        self.updateBallPrediction()
+        self.updatePredictions()
+        # print("{0:.2f}".format(time.time()))
+        # self.last = time.time()
 
     except rospy.ServiceException, e:
         print "service call failed: %s"%e
@@ -258,7 +260,7 @@ class Vektory:
   def defensiveStrats(self):
     predBallXY = self.ballPrediction(1.5)	#TODO change this to be parameterizable somehow
     lookAtPoint = self.ball.point
-    DEFENSIVE_X_COORD = HOME_GOAL.x - 0.5
+    DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
     # DEFENSIVE_Y_COORD = self.ball.point.y
     DEFENSIVE_Y_COORD = predBallXY[1]
 
@@ -375,13 +377,13 @@ class Vektory:
 
     #check if ball is behind robot
     if self.state == State.getBehindBall:
-      desiredPoint = MotionSkills.getPointBehindBall(self.ball)
+      desiredPoint = MotionSkills.getPointBehindBall(self.ball, home_goal=AWAY_GOAL)
       distFromPoint = math.sqrt((self.robotLocation.x - desiredPoint.x)**2
                               + (self.robotLocation.y - desiredPoint.y)**2)
       if distFromPoint < 0.1:
         self.state = State.rushGoal
-        self.stopRushingGoalTime = getTime() + 100
-      else:
+        self.stopRushingGoalTime = getTime() + 50
+      elif self.ball.point.x > AWAY_GOAL:
         #try go to point
         self.go_to_point(desiredPoint.x, desiredPoint.y)
         #self.go_direction(desiredPoint)
@@ -415,9 +417,11 @@ class Vektory:
     # goFullDefensive()
     #if (robot is anywhere else)
     # goFullOffensive()
-    if self.ball.x > pixelToMeter(WIDTH_FIELD / 4):
+    if self.ball.point.x < WIDTH_FIELD/4:
+      self.strategy = Strategy.OFFENSIVE
       self.play()
     else:
+      self.strategy = Strategy.DEFENSIVE
       self.defensiveStrats()
 
 
@@ -434,27 +438,32 @@ class Vektory:
     scheduler.enter(0.1, 1, self.executionLoop,(scheduler,))
     self.updateLocations()
     if self.gameState == GameState.play:
-      self.play()
+      self.jarjar_oneRobotStrategy()
     elif self.gameState == GameState.test:
       #self.test()
       self.defensiveStrats()
+      self.strategy = Strategy.DEFENSIVE
     elif self.gameState == GameState.stop:
+      self.strategy = Strategy.NONE
       if self.stopped == False:
         self.sendCommand(0,0,0);
         self.stopped = True;
     elif self.gameState == GameState.center:
+      self.strategy = Strategy.NONE
       if abs(self.robotLocation.x) > CENTER_THRESHOLD or abs(self.robotLocation.y) > CENTER_THRESHOLD:
         self.go_to_point(CENTER.x, CENTER.y, None)
       elif self.stopped == False:
         self.sendCommand(0,0,0);
         self.stopped = True;
     elif self.gameState == GameState.startPosition:
+      self.strategy = Strategy.NONE
       if abs(self.robotLocation.x - pixelToMeter(-120)) > .1 or abs(self.robotLocation.y - 0) > .1 or abs(self.robotLocation.theta) > .1:
-        self.go_to_point(pixelToMeter(-115), 0, HOME_GOAL)
+        self.go_to_point(pixelToMeter(115), 0, AWAY_GOAL)
       elif self.stopped == False:
         self.sendCommand(0,0,0);
         self.stopped = True;
     elif self.gameState == GameState.goToPoint:
+      self.strategy = Strategy.NONE
       if abs(self.robotLocation.x - self.clickLocationX) > CENTER_THRESHOLD/5 or abs(self.robotLocation.y - self.clickLocationY) > CENTER_THRESHOLD/5:
         self.go_to_point(self.clickLocationX, self.clickLocationY)
       elif self.stopped == False:
@@ -494,7 +503,7 @@ class Vektory:
     return commcenterResponse()
 
   def go(self):
-    roboclaw.calibrateRoboclaws()
+    # roboclaw.calibrateRoboclaws()
     print "Searching for Vektor Locations Service..."
     rospy.wait_for_service('locations')
     print "Searching for Vektor Locations Update Service..."
@@ -506,11 +515,13 @@ class Vektory:
     s.enter(0,1,self.executionLoop,(s,))
     s.run()
 
-  def updateBallPrediction(self):
+  def updatePredictions(self):
+    # get new timestamp
     newTimeStamp = time.time()
     sample_period = newTimeStamp - self.lastTimeStamp
     self.lastTimeStamp = newTimeStamp
 
+    # update ball prediction
     ball_vector_x = (self.ball.point.x - self.lastBall.point.x) #x distance traveled
     ball_vector_y = (self.ball.point.y - self.lastBall.point.y) #y distance traveled
     ball_mag = math.sqrt(ball_vector_x**2 + ball_vector_y**2)
@@ -523,6 +534,21 @@ class Vektory:
     self.lastBall.point.x = self.ball.point.x
     self.lastBall.point.y = self.ball.point.y
 
+    # update robot prediction
+    home1_vector_x = (self.robotLocation.x - self.lastHome1.x) #x distance traveled
+    home1_vector_y = (self.robotLocation.y - self.lastHome1.y) #y distance traveled
+    home1_mag = math.sqrt(home1_vector_x**2 + home1_vector_y**2)
+    home1_angle = math.atan2(home1_vector_y, home1_vector_x)
+    home1_velocity = home1_mag/sample_period
+
+    # print(home1_velocity)
+
+    self.currHome1XVel = home1_vector_x / sample_period
+    self.currHome1YVel = home1_vector_y / sample_period
+
+    self.lastHome1.x = self.robotLocation.x
+    self.lastHome1.y = self.robotLocation.y
+
   def ballPrediction(self, time_sec):
     #time_sec is saying where will the ball be in 'time_sec' amount of seconds
     ball_new_position_x = self.ball.point.x + self.currBallXVel*time_sec
@@ -532,7 +558,7 @@ class Vektory:
   def pidloop(self, dest_loc, cur_loc, var):
     def getConstants(var):
       if var == 'x' or var == 'y':
-        return (0.01, 0.05, 1.1, 0.0, 0.7, MAX_SPEED)
+        return (0.01, 0.05, 1.5, 0.0, 0.7, MAX_SPEED)
       elif var == 'theta':
         return (0.01, 0.05, 1.7, 0.0, .7, MAX_OMEGA)
     def sat(x, limit):
@@ -554,6 +580,7 @@ class Vektory:
       # negate error because positive rotation of our robot is backwards
       error = -error
 
+    # print("PID cur = {}, dest = {}, error = {}".format(cur_loc, dest_loc, error))
     #update integrator
     self.integrator[var] = self.integrator[var] + (Ts/2) * (error + self.error_d1[var])
 
@@ -568,7 +595,19 @@ class Vektory:
       self.integrator[var] = self.integrator[var] + Ts/ki *(velocity - velocity_unsat)
 
     #u is the output velocity in a specified direction (x or y)
-    print("PID", var, error, velocity)
+    # print("PID", var, error, velocity)
+
+    MIN_SPEED_XY = 0.7
+    MIN_SPEED_THETA = 4
+    THRESHOLD = 0.2
+
+    if math.sqrt(self.currHome1XVel**2 + self.currHome1YVel**2) < 0.2:
+      if var == 'x' or var == 'y':
+        # print("increase {}".format(var))
+        if abs(velocity) > THRESHOLD:
+          velocity = MIN_SPEED_XY if velocity > 0 else -MIN_SPEED_XY
+      # elif var == 'theta':
+      #   velocity = velocity + (MIN_SPEED_THETA if velocity > 0 else -MIN_SPEED_THETA)
     return velocity
 
 if __name__ == '__main__':

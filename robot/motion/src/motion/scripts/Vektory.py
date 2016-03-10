@@ -235,11 +235,13 @@ class Vektory:
 
     self.sendCommand(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
 
-  def updateLocations(self):
+  def updateLocations(self, data):
     try:
-        locations = rospy.ServiceProxy('locations', curlocs, persistent=True)
-        response = locations()
-        self.locations = pickle.loads(response.pickle)
+          # locations = rospy.ServiceProxy('locations', curlocs, persistent=True)
+          # response = locations()
+          #self.locations = pickle.loads(response.pickle)
+              self.locations = Locations()
+              self.locations.setLocationsFromMeasurement(data)
         self.robotLocation = self.locations.home1
         self.ball.point.x = self.locations.ball.x
         self.ball.point.y = self.locations.ball.y
@@ -436,7 +438,6 @@ class Vektory:
 
   def executionLoop(self, scheduler):
     scheduler.enter(0.1, 1, self.executionLoop,(scheduler,))
-    self.updateLocations()
     if self.gameState == GameState.play:
       self.jarjar_oneRobotStrategy()
     elif self.gameState == GameState.test:
@@ -512,6 +513,7 @@ class Vektory:
     rospy.init_node('commandNode')
     rospy.Service('commcenter', commcenter, self.executeCommCenterCommand)
     s = sched.scheduler(time.time, time.sleep)
+    rospy.Subscriber("locTopic", locations, self.updateLocations)
     s.enter(0,1,self.executionLoop,(s,))
     s.run()
 

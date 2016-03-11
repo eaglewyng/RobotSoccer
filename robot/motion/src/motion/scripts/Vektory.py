@@ -5,6 +5,10 @@ import rospy
 import sys
 import time
 from robot_soccer.srv import *
+from robot_soccer.msg import *
+
+
+
 from MotionSkills import *
 from motor_control import roboclaw
 from gamepieces.HomeRobot import HomeRobot
@@ -240,8 +244,9 @@ class Vektory:
           # locations = rospy.ServiceProxy('locations', curlocs, persistent=True)
           # response = locations()
           #self.locations = pickle.loads(response.pickle)
-              self.locations = Locations()
-              self.locations.setLocationsFromMeasurement(data)
+        print("updating locationz!!!")
+        self.locations = Locations()
+        self.locations.setLocationsFromMeasurement(data)
         self.robotLocation = self.locations.home1
         self.ball.point.x = self.locations.ball.x
         self.ball.point.y = self.locations.ball.y
@@ -514,6 +519,7 @@ class Vektory:
     rospy.Service('commcenter', commcenter, self.executeCommCenterCommand)
     s = sched.scheduler(time.time, time.sleep)
     rospy.Subscriber("locTopic", locations, self.updateLocations)
+    print "Subscribed to locTopic!"
     s.enter(0,1,self.executionLoop,(s,))
     s.run()
 

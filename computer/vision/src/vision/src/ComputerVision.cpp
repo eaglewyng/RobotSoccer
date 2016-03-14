@@ -116,6 +116,9 @@ sem_t trackAway2End;
 
 VideoCapture capture;
 
+bool filterInitialized;
+robot_soccer::locations oldLocations;
+
 // Saves all of the pertinent calibration settings to human-readable file
 void saveSettings() {
   // Open file
@@ -662,6 +665,67 @@ void * away2Thread(void * notUsed) {
     }
 }
 
+robot_soccer::locations lowPassFilterLocations(robot_soccer::locations measuredLocations) {
+  robot_soccer::locations processedLocations;
+
+  // initialize filter
+  if (!filterInitialized) {
+    filterInitialized = true;
+    oldLocations.ball_x = 0;
+    oldLocations.ball_y = 0;
+    oldLocations.home1_x = 0;
+    oldLocations.home1_y = 0;
+    oldLocations.home1_theta = 0;
+    oldLocations.home2_x = 0;
+    oldLocations.home2_y = 0;
+    oldLocations.home2_theta = 0;
+    oldLocations.away1_x = 0;
+    oldLocations.away1_y = 0;
+    oldLocations.away1_theta = 0;
+    oldLocations.away2_x = 0;
+    oldLocations.away2_y = 0;
+    oldLocations.away2_theta = 0;
+  }
+
+  unsigned int alpha = 0.5;
+
+  // filter measured values
+  processedLocations.ball_x      = alpha*oldLocations.ball_x      + (1-alpha)*measuredLocations.ball_x;
+  processedLocations.ball_y      = alpha*oldLocations.ball_y      + (1-alpha)*measuredLocations.ball_y;
+  processedLocations.home1_x     = alpha*oldLocations.home1_x     + (1-alpha)*measuredLocations.home1_x;
+  processedLocations.home1_y     = alpha*oldLocations.home1_y     + (1-alpha)*measuredLocations.home1_y;
+  processedLocations.home1_theta = alpha*oldLocations.home1_theta + (1-alpha)*measuredLocations.home1_theta;
+  processedLocations.home2_x     = alpha*oldLocations.home2_x     + (1-alpha)*measuredLocations.home2_x;
+  processedLocations.home2_y     = alpha*oldLocations.home2_y     + (1-alpha)*measuredLocations.home2_y;
+  processedLocations.home2_theta = alpha*oldLocations.home2_theta + (1-alpha)*measuredLocations.home2_theta;
+  processedLocations.away1_x     = alpha*oldLocations.away1_x     + (1-alpha)*measuredLocations.away1_x;
+  processedLocations.away1_y     = alpha*oldLocations.away1_y     + (1-alpha)*measuredLocations.away1_y;
+  processedLocations.away1_theta = alpha*oldLocations.away1_theta + (1-alpha)*measuredLocations.away1_theta;
+  processedLocations.away2_x     = alpha*oldLocations.away2_x     + (1-alpha)*measuredLocations.away2_x;
+  processedLocations.away2_y     = alpha*oldLocations.away2_y     + (1-alpha)*measuredLocations.away2_y;
+  processedLocations.away2_theta = alpha*oldLocations.away2_theta + (1-alpha)*measuredLocations.away2_theta;
+
+  processedLocations.header.stamp = measuredLocations.header.stamp;
+
+  // update old values
+  oldLocations.ball_x      = processedLocations.ball_x;
+  oldLocations.ball_y      = processedLocations.ball_y;
+  oldLocations.home1_x     = processedLocations.home1_x;
+  oldLocations.home1_y     = processedLocations.home1_y;
+  oldLocations.home1_theta = processedLocations.home1_theta;
+  oldLocations.home2_x     = processedLocations.home2_x;
+  oldLocations.home2_y     = processedLocations.home2_y;
+  oldLocations.home2_theta = processedLocations.home2_theta;
+  oldLocations.away1_x     = processedLocations.away1_x;
+  oldLocations.away1_y     = processedLocations.away1_y;
+  oldLocations.away1_theta = processedLocations.away1_theta;
+  oldLocations.away2_x     = processedLocations.away2_x;
+  oldLocations.away2_y     = processedLocations.away2_y;
+  oldLocations.away2_theta = processedLocations.away2_theta;
+
+  return processedLocations;
+}
+
 int main(int argc, char* argv[]) {
 	//if we would like to calibrate our filter values, set to true.
 	bool calibrationMode = true;
@@ -729,6 +793,8 @@ int main(int argc, char* argv[]) {
   pthread_create (&away1T, NULL, away1Thread, NULL);
   pthread_create (&away2T, NULL, away2Thread, NULL);
 
+  filterInitialized = false;
+
   unsigned int printCounter = 0;
   while(ros::ok()) {
     sem_wait(&frameMatSema);
@@ -790,6 +856,9 @@ int main(int argc, char* argv[]) {
     coordinates.away2_y = away2.get_y_pos();
     coordinates.away2_theta = away2.getAngle();
     coordinates.header.stamp = timestamp;
+
+    coordinates = lowPassFilterLocations(coordinates);
+
     // Print values to ROS console
     if (!(printCounter%PRINT_FREQ)) {
       ROS_INFO("\n  timestamp: %u.%09u\n  ", coordinates.header.stamp.sec, coordinates.header.stamp.nsec);

@@ -164,12 +164,11 @@ void Robot::trackFilteredRobot(Mat threshold, Mat HSV, Mat &cameraFeed) {
 
   //find contours of filtered image using openCV findContours function
   findContours(temp,contours,hierarchy,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE );
+  contours.erase(std::remove_if(contours.begin(), contours.end(), tooSmall()), contours.end());
 
   //use moments method to find our filtered object
   //TODO(lukehsiao) This WILL break if there are more than 2 objects found. Segmentation has to be really good.
   if (contours.size() >= 2) {
-
-    contours.erase(std::remove_if(contours.begin(), contours.end(), tooSmall()), contours.end());
 
     // Identify the bigger object
     if (contourArea(contours[0]) < contourArea(contours[1])) {

@@ -588,7 +588,7 @@ void * processorThread(void * notUsed){
       field_origin_x = field_center_x - (field_width/2);
       field_origin_y = field_center_y - (field_height/2);
       Rect myROI(field_origin_x,field_origin_y,field_width, field_height);
-      // frameMat.image = frameMat.image(myROI);
+      frameMat.image = frameMat.image(myROI);
 
       cvtColor(frameMat.image,frameMat.HSV,COLOR_BGR2HSV);
 

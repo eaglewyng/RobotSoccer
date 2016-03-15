@@ -227,49 +227,52 @@ void Robot::trackFilteredRobot(Mat threshold, Mat HSV, Mat &cameraFeed) {
     real_center_x = (int)(centerPoints[c1].x + centerPoints[c2].x)/2;
     real_center_y = (int)(centerPoints[c1].y + centerPoints[c2].y)/2;
 
+    this->set_img_x(real_center_x);
+    this->set_img_y(real_center_y);
+
     circle(cameraFeed, Point(real_center_x, real_center_y), 3, Scalar(255,255,255), -1, 8, 0);
 
     Point fieldPosition = convertCoordinates(Point(real_center_x,
                                                    real_center_y));
 
     // Assign Robot it's variables based on team
-    if (TEAM == HOME) {
+    // if (TEAM == HOME) {
       if (abs(intAngle - this->getOldAngle()) > MIN_CHANGE) {
         this->setAngle(intAngle);
       }
       if (abs(fieldPosition.x - this->get_x_pos()) > MIN_CHANGE &&
           abs(fieldPosition.x - this->get_x_pos()) < MAX_CHANGE) {
         this->set_x_pos(fieldPosition.x);
-        this->set_img_x((int)centerPoints[c1].x);
+        // this->set_img_x((int)centerPoints[c1].x);
       }
       if (abs(fieldPosition.y - this->get_y_pos()) > MIN_CHANGE &&
           abs(fieldPosition.y - this->get_y_pos()) < MAX_CHANGE) {
         this->set_y_pos(fieldPosition.y);
-        this->set_img_y((int)centerPoints[c1].y);
+        // this->set_img_y((int)centerPoints[c1].y);
       }
-    }
-    else {
-      // Convert to Away Angle
-      if (intAngle <= 180) {
-        intAngle = 180 + intAngle;
-      }
-      else {
-        intAngle = intAngle - 180;
-      }
-      if (abs(intAngle - this->getOldAngle()) > MIN_CHANGE) {
-        this->setAngle(intAngle);
-      }
-      if (abs(fieldPosition.x + this->get_x_pos()) > MIN_CHANGE &&
-          abs(fieldPosition.x + this->get_x_pos()) < MAX_CHANGE) {
-        this->set_x_pos(-fieldPosition.x);
-        this->set_img_x((int)centerPoints[c1].x);
-      }
-      if (abs(fieldPosition.y + this->get_y_pos()) > MIN_CHANGE &&
-          abs(fieldPosition.y + this->get_y_pos()) < MAX_CHANGE) {
-        this->set_y_pos(-fieldPosition.y);
-        this->set_img_y((int)centerPoints[c1].y);
-      }
-    }
+    // }
+    // else {
+    //   // Convert to Away Angle
+    //   if (intAngle <= 180) {
+    //     intAngle = 180 + intAngle;
+    //   }
+    //   else {
+    //     intAngle = intAngle - 180;
+    //   }
+    //   if (abs(intAngle - this->getOldAngle()) > MIN_CHANGE) {
+    //     this->setAngle(intAngle);
+    //   }
+    //   if (abs(fieldPosition.x + this->get_x_pos()) > MIN_CHANGE &&
+    //       abs(fieldPosition.x + this->get_x_pos()) < MAX_CHANGE) {
+    //     this->set_x_pos(-fieldPosition.x);
+    //     this->set_img_x((int)centerPoints[c1].x);
+    //   }
+    //   if (abs(fieldPosition.y + this->get_y_pos()) > MIN_CHANGE &&
+    //       abs(fieldPosition.y + this->get_y_pos()) < MAX_CHANGE) {
+    //     this->set_y_pos(-fieldPosition.y);
+    //     this->set_img_y((int)centerPoints[c1].y);
+    //   }
+    // }
 
     this->drawRobot(cameraFeed);
   }

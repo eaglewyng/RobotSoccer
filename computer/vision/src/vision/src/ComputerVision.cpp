@@ -332,9 +332,7 @@ void restoreSettings() {
   printf("Settings Restored!\n");
 }
 
-void setFieldValues() {
-  printf("home vals: %d %d %d %d\n", home_field_center_x, home_field_center_y, home_field_width, home_field_height);
-  printf("away vals: %d %d %d %d\n", away_field_center_x, away_field_center_y, away_field_width, away_field_height);
+void restoreFieldValues() {
   field_width = (TEAM == HOME) ? home_field_width : away_field_width;
   field_height = (TEAM == HOME) ? home_field_height : away_field_height;
   field_center_x = (TEAM == HOME) ? home_field_center_x : away_field_center_x;
@@ -446,7 +444,7 @@ void morphOps(Mat &thresh) {
 // Generates prompts for field calibration of size/center
 void calibrateField() {
   restoreSettings();
-  setFieldValues();
+  restoreFieldValues();
   VideoCapture calibrationCapture(videoStreamAddress);
   Mat cameraFeed;
   int field_origin_x;
@@ -735,6 +733,7 @@ void changeCamera(const std_msgs::Int32 message) {
   if (calibrationMode == true) {
     calibrateField();
   }
+  restoreFieldValues();
 }
 
 robot_soccer::locations lowPassFilterLocations(robot_soccer::locations measuredLocations) {
@@ -816,6 +815,10 @@ int main(int argc, char* argv[]) {
   ros::Subscriber cameraSub = nodeHandle->subscribe("visionCamera", 10, changeCamera);
   ros::Rate loop_rate(40);
 
+  // restore settings
+  restoreSettings();
+  restoreFieldValues();
+
   // initialize camera to home
   sem_init(&cameraChangeSem, 0, 1);
   std_msgs::Int32 message;
@@ -823,7 +826,9 @@ int main(int argc, char* argv[]) {
   changeCamera(message);
 
   // calibrate robots
-  calibrateObjects();
+  if (calibrationMode) {
+    calibrateObjects();
+  }
 
   /************************************************************************/
 

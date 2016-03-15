@@ -244,7 +244,6 @@ class Vektory:
           # locations = rospy.ServiceProxy('locations', curlocs, persistent=True)
           # response = locations()
           #self.locations = pickle.loads(response.pickle)
-        print("updating locationz!!!")
         self.locations = Locations()
         self.locations.setLocationsFromMeasurement(data)
         self.robotLocation = self.locations.home1

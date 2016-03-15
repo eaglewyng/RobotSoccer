@@ -720,7 +720,6 @@ void changeCamera(const std_msgs::Int32 message) {
   }
 
   TEAM = message.data;
-  printf("TEAM = %d\n", TEAM);
   std::string ip = (TEAM == HOME) ? "192.168.1.78" : "192.168.1.79";
   videoStreamAddress = "http://" + ip + ":8080/stream?topic=/image&dummy=param.mjpg";
   capture = VideoCapture(videoStreamAddress);

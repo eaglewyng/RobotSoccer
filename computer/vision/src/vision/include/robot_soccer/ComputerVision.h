@@ -22,6 +22,7 @@
 #include <queue>
 
 #include "ros/ros.h"
+#include "std_msgs/Int32.h"
 #include "std_msgs/String.h"
 #include "robot_soccer/locations.h"
 
@@ -39,8 +40,8 @@ typedef struct {
 #define FRAME_WIDTH  640
 #define FRAME_HEIGHT 480
 
-#define HOME 1
-#define AWAY 2
+#define HOME 0
+#define AWAY 1
 
 #define GUI 1
 #define NO_GUI 2

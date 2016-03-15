@@ -515,7 +515,7 @@ class Vektory:
     print "Searching for Vektor Locations Update Service..."
     rospy.wait_for_service('commandSent')
     print "Entering Gameplay"
-    rospy.init_node('commandNode')
+    rospy.init_node('vektoryNode')
     rospy.Service('commcenter', commcenter, self.executeCommCenterCommand)
     s = sched.scheduler(time.time, time.sleep)
     rospy.Subscriber("locTopic", locations, self.updateLocations)

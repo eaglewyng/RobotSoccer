@@ -8,8 +8,19 @@ import math
 import rospy
 from robot_soccer.srv import *
 import cPickle as pickle
+from std_msgs.msg import Int32
 
 REFRESH_RATE = 100
+
+HOME = 0
+AWAY = 1
+visionCamera = HOME
+cameraPub = rospy.Publisher('visionCamera', Int32, queue_size=10)
+
+def swapVisionCamera():
+  global visionCamera, cameraPub
+  visionCamera = HOME if visionCamera is AWAY else AWAY
+  cameraPub.publish(visionCamera)
 
 class Field(Frame):
     def sendCommandCenter(self,command):
@@ -32,6 +43,8 @@ class Field(Frame):
           self.sendCommandCenter((4, 0, 0))
         elif keyPressed == 't': # Run the "Test" strategy
           self.sendCommandCenter((5, 0, 0))
+        elif keyPressed == 'v':
+          swapVisionCamera()
         print "pressed", repr(event.char)
 
     def callback(self,event):
@@ -157,6 +170,10 @@ def main():
   print "Searching for Vektor Gameplay Command Service..."
   rospy.wait_for_service('commcenter')
   print "Starting Command Center"
+
+  rospy.init_node('commandNode')
+  cameraPub.publish(visionCamera)
+
   root = Tk()
   root.resizable(width=FALSE, height=FALSE)
   ex = Field(root)

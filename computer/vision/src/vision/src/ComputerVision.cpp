@@ -30,6 +30,14 @@ int field_width;
 int field_height;
 int field_center_x;
 int field_center_y;
+int home_field_width;
+int home_field_height;
+int home_field_center_x;
+int home_field_center_y;
+int away_field_width;
+int away_field_height;
+int away_field_center_x;
+int away_field_center_y;
 
 //initial min and max HSV filter values.
 //these will be changed using trackbars
@@ -113,11 +121,18 @@ sem_t trackHome1End;
 sem_t trackHome2End;
 sem_t trackAway1End;
 sem_t trackAway2End;
+sem_t cameraChangeSem;
 
+string videoStreamAddress;
 VideoCapture capture;
 
 bool filterInitialized;
 robot_soccer::locations oldLocations;
+
+ros::NodeHandle* nodeHandle;
+
+//if we would like to calibrate our filter values, set to true.
+bool calibrationMode = true;
 
 // Saves all of the pertinent calibration settings to human-readable file
 void saveSettings() {
@@ -134,7 +149,8 @@ void saveSettings() {
   const string a1 = "Away1";
   const string a2 = "Away2";
   const string b = "Ball";
-  const string f = "Field";
+  const string hf = "HomeField";
+  const string af = "AwayField";
   int tempH, tempS, tempV;
 
   // Print human-readable header for settings file
@@ -199,8 +215,20 @@ void saveSettings() {
 
   // Field Save format:
   // [Field] [x_pos] [y_pos] [width] [height]
-  of << f << " " << field_center_x << " " << field_center_y;
-  of << " " << field_width << " " <<  field_height << "\n";
+  if (TEAM == HOME) {
+    of << hf << " " << field_center_x << " " << field_center_y;
+    of << " " << field_width << " " <<  field_height << "\n";
+
+    of << af << " " << away_field_center_x << " " << away_field_center_y;
+    of << " " << away_field_width << " " <<  away_field_height << "\n";
+  }
+  else {
+    of << hf << " " << home_field_center_x << " " << home_field_center_y;
+    of << " " << home_field_width << " " <<  home_field_height << "\n";
+
+    of << af << " " << field_center_x << " " << field_center_y;
+    of << " " << field_width << " " <<  field_height << "\n";
+  }
 
   // close file
   of.close();
@@ -214,7 +242,8 @@ void restoreSettings() {
   const string a1 = "Away1";
   const string a2 = "Away2";
   const string b = "Ball";
-  const string f = "Field";
+  const string hf = "HomeField";
+  const string af = "AwayField";
   int tempH, tempS, tempV;
 
   std::stringstream ss;
@@ -285,16 +314,31 @@ void restoreSettings() {
       ss >> tempV;
       ball.setHSVmax(Scalar(tempH, tempS, tempV));
     }
-    else if (ID == f) {
-      ss >> field_center_x;
-      ss >> field_center_y;
-      ss >> field_width;
-      ss >> field_height;
+    else if (ID == hf) {
+      ss >> home_field_center_x;
+      ss >> home_field_center_y;
+      ss >> home_field_width;
+      ss >> home_field_height;
+    }
+    else if (ID == af) {
+      ss >> away_field_center_x;
+      ss >> away_field_center_y;
+      ss >> away_field_width;
+      ss >> away_field_height;
     }
     ss.clear();
   }
   in.close();
   printf("Settings Restored!\n");
+}
+
+void setFieldValues() {
+  printf("home vals: %d %d %d %d\n", home_field_center_x, home_field_center_y, home_field_width, home_field_height);
+  printf("away vals: %d %d %d %d\n", away_field_center_x, away_field_center_y, away_field_width, away_field_height);
+  field_width = (TEAM == HOME) ? home_field_width : away_field_width;
+  field_height = (TEAM == HOME) ? home_field_height : away_field_height;
+  field_center_x = (TEAM == HOME) ? home_field_center_x : away_field_center_x;
+  field_center_y = (TEAM == HOME) ? home_field_center_y : away_field_center_y;
 }
 
 //-----------------------------------------------------------------------------
@@ -400,7 +444,10 @@ void morphOps(Mat &thresh) {
 //-----------------------------------------------------------------------------
 
 // Generates prompts for field calibration of size/center
-void calibrateField(VideoCapture capture) {
+void calibrateField() {
+  restoreSettings();
+  setFieldValues();
+  VideoCapture calibrationCapture(videoStreamAddress);
   Mat cameraFeed;
   int field_origin_x;
   int field_origin_y;
@@ -425,7 +472,7 @@ void calibrateField(VideoCapture capture) {
 
   // Wait forever until user sets the values
   while (1) {
-    capture.read(cameraFeed);
+    calibrationCapture.read(cameraFeed);
     undistortImage(cameraFeed);
 
     // Wait for user to set values
@@ -465,15 +512,16 @@ void calibrateField(VideoCapture capture) {
       printf("Field Width: %d\n", field_width);
       printf("Field Height: %d\n", field_height);
       destroyAllWindows();
+      calibrationCapture.release();
+      saveSettings();
       return;
     }
   }
 }
 
 // Generates all the calibration prompts (field + ball + robots)
-void runFullCalibration(VideoCapture capture) {
+void calibrateObjects() {
   restoreSettings();
-  calibrateField(capture);
   ball.calibrateBall(capture);
   home1.calibrateRobot(capture);
   home2.calibrateRobot(capture);
@@ -547,12 +595,14 @@ void * parserThread(void * notUsed){
   FrameMat frame;
 
   do {
+    sem_wait(&cameraChangeSem);
     ros::Time timestamp;
     timestamp.sec = 0;
     timestamp.nsec = 0;
     frame.timestamp = timestamp;
     capture.read(frame.image);
     // flip(frame.image, frame.image, -1);
+    sem_post(&cameraChangeSem);
 
     int value;
     sem_getvalue(&frameRawSema, &value);
@@ -665,6 +715,28 @@ void * away2Thread(void * notUsed) {
     }
 }
 
+void changeCamera(const std_msgs::Int32 message) {
+  sem_wait(&cameraChangeSem);
+  if (capture.isOpened()) {
+    capture.release();
+  }
+
+  TEAM = message.data;
+  printf("TEAM = %d\n", TEAM);
+  std::string ip = (TEAM == HOME) ? "192.168.1.78" : "192.168.1.79";
+  videoStreamAddress = "http://" + ip + ":8080/stream?topic=/image&dummy=param.mjpg";
+  capture = VideoCapture(videoStreamAddress);
+
+  //set height and width of capture frame
+  capture.set(CV_CAP_PROP_FRAME_WIDTH,FRAME_WIDTH);
+  capture.set(CV_CAP_PROP_FRAME_HEIGHT,FRAME_HEIGHT);
+  sem_post(&cameraChangeSem);
+
+  if (calibrationMode == true) {
+    calibrateField();
+  }
+}
+
 robot_soccer::locations lowPassFilterLocations(robot_soccer::locations measuredLocations) {
   robot_soccer::locations processedLocations;
 
@@ -727,9 +799,6 @@ robot_soccer::locations lowPassFilterLocations(robot_soccer::locations measuredL
 }
 
 int main(int argc, char* argv[]) {
-	//if we would like to calibrate our filter values, set to true.
-	bool calibrationMode = true;
-
 	//Matrix to store each frame of the webcam feed
 	Mat threshold1; //threshold image of ball
 	Mat threshold2; //threshold image of robot
@@ -737,27 +806,24 @@ int main(int argc, char* argv[]) {
 	Mat bw; // black and white mat
   Mat BGR;// BGR mat
 
-	//video capture object to acquire webcam feed
-	const string videoStreamAddress = "http://192.168.1.78:8080/stream?topic=/image&dummy=param.mjpg";
-  capture.open(videoStreamAddress); //set to 0 to use the webcam
-
-	//set height and width of capture frame
-	capture.set(CV_CAP_PROP_FRAME_WIDTH,FRAME_WIDTH);
-	capture.set(CV_CAP_PROP_FRAME_HEIGHT,FRAME_HEIGHT);
-
-  if (calibrationMode == true) {
-    // Calibrate the camera first
-    runFullCalibration(capture);
-  }
-
   //namedWindow(windowName,WINDOW_NORMAL);
 
-  /***********************Ros Publisher************************************/
+  /***********************Ros************************************/
 
   ros::init(argc, argv, "computer_vision");
-  ros::NodeHandle n;
-  ros::Publisher publisher = n.advertise<robot_soccer::locations>("locTopic", 1000);
+  nodeHandle = new ros::NodeHandle();
+  ros::Publisher publisher = nodeHandle->advertise<robot_soccer::locations>("locTopic", 1000);
+  ros::Subscriber cameraSub = nodeHandle->subscribe("visionCamera", 10, changeCamera);
   ros::Rate loop_rate(40);
+
+  // initialize camera to home
+  sem_init(&cameraChangeSem, 0, 1);
+  std_msgs::Int32 message;
+  message.data = HOME;
+  changeCamera(message);
+
+  // calibrate robots
+  calibrateObjects();
 
   /************************************************************************/
 
@@ -797,6 +863,8 @@ int main(int argc, char* argv[]) {
 
   unsigned int printCounter = 0;
   while(ros::ok()) {
+    ros::spinOnce();
+
     sem_wait(&frameMatSema);
     FrameMat frame = frameMatFifo.front();
     frameMatFifo.pop();
@@ -860,7 +928,7 @@ int main(int argc, char* argv[]) {
     coordinates = lowPassFilterLocations(coordinates);
 
     // Print values to ROS console
-    if (!(printCounter%PRINT_FREQ)) {
+    if (false && !(printCounter%PRINT_FREQ)) {
       ROS_INFO("\n  timestamp: %u.%09u\n  ", coordinates.header.stamp.sec, coordinates.header.stamp.nsec);
       //ROS_INFO("\n  Ball_x: %d\n  Ball_y: %d\n", coordinates.ball_x, coordinates.ball_y);
     }

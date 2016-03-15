@@ -76,6 +76,8 @@ class Vektory:
     self.currBallXVel = 0
     self.currBallYVel = 0
 
+    initkick()
+
     self.integrator = {'x': 0, 'y': 0, 'theta': 0}
     self.differentiator = {'x': 0, 'y': 0, 'theta': 0}
     self.error_d1 = {'x': 0, 'y': 0, 'theta': 0}

@@ -585,8 +585,11 @@ class Vektory:
       # do weird normalization of angles
       dest_loc = dest_loc % (2*math.pi)
       error = dest_loc - cur_loc
-      if error > math.pi:
-        error = error - 2*math.pi
+      if abs(error) > math.pi:
+        if error > 0:
+          error = error - 2*math.pi
+        else:
+          error = error + 2*math.pi
       # negate error because positive rotation of our robot is backwards
       error = -error
 

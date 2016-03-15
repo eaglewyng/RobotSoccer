@@ -76,6 +76,8 @@ class Vektory:
     self.currBallXVel = 0
     self.currBallYVel = 0
 
+    initkick()
+
     self.integrator = {'x': 0, 'y': 0, 'theta': 0}
     self.differentiator = {'x': 0, 'y': 0, 'theta': 0}
     self.error_d1 = {'x': 0, 'y': 0, 'theta': 0}
@@ -383,7 +385,8 @@ class Vektory:
 
     #check if ball is behind robot
     if self.state == State.getBehindBall:
-      desiredPoint = MotionSkills.getPointBehindBall(self.ball, home_goal=AWAY_GOAL)
+      predBallLoc = this.ballPrediction(time.time() - self.lastTimeStamp)
+      desiredPoint = MotionSkills.getPointBehindBallXY(predBallLoc(0), predBallLoc(1), home_goal=AWAY_GOAL)
       distFromPoint = math.sqrt((self.robotLocation.x - desiredPoint.x)**2
                               + (self.robotLocation.y - desiredPoint.y)**2)
       if distFromPoint < 0.1:

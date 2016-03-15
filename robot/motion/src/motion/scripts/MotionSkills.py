@@ -98,6 +98,18 @@ class MotionSkills:
         y = ballPoint.y + (DIS_BEHIND_BALL * math.sin(angle))
         #print "(%f, %f)" % (x, y)
         return Point(x,y)
+
+    @staticmethod
+    def getPointBehindBallXY(xp, yp, home_goal = None):
+        if home_goal == None:
+          home_goal = HOME_GOAL
+        ballPoint = Point(xp,yp)
+        angle = MotionSkills.angleBetweenPoints(home_goal, ballPoint)
+        x = ballPoint.x + (DIS_BEHIND_BALL * math.cos(angle))
+        y = ballPoint.y + (DIS_BEHIND_BALL * math.sin(angle))
+        #print "(%f, %f)" % (x, y)
+        return Point(x,y)
+
         
     @staticmethod
     def rotatePointByAngle(point,angle):

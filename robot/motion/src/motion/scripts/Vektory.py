@@ -53,8 +53,7 @@ class Vektory:
     self.locations = None
     self.ball = Ball()
     self.robotLocation = None
-    self.clickLocationX = 0
-    self.clickLocationY = 0
+    self.clickLocation = Point()
     self.distanceToBall = 0
     self.state = State.check
     self.rotate = Rotate.none
@@ -258,9 +257,8 @@ class Vektory:
         self.stopped = True;
     elif self.gameState == GameState.goToPoint:
       self.strategy = Strategy.NONE
-      clickLocation = Point(self.clickLocationX, self.clickLocationY)
-      if distance(self.robotLocation, clickLocation) > MOVEMENT_THRESHOLD:
-        self.go_to_point(self.clickLocationX, self.clickLocationY)
+      if distance(self.robotLocation, self.clickLocation) > MOVEMENT_THRESHOLD:
+        self.go_to_point(self.clickLocation.x, self.clickLocation.y)
       elif self.stopped == False:
         self.sendCommand(0, 0, 0)
         self.stopped = True
@@ -287,9 +285,7 @@ class Vektory:
     elif req.comm == 6:
       self.gameState = GameState.goToPoint
       self.stopped = False
-      self.clickLocationX = pixelToMeter(req.x)
-      self.clickLocationY = pixelToMeter(req.y)
-
+      self.clickLocation = Point(pixelToMeter(req.x), pixelToMeter(req.y))
     return commcenterResponse()
 
   def go(self):

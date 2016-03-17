@@ -41,13 +41,13 @@ class Strategy(Enum):
 class Vektory:
   def __init__(self):
     self.locations = None
-    self.ball = Ball()
-    self.robotLocation = None
+    self.ballLocation = Point()
+    self.home1Location = RobotLocation()
     self.clickLocation = Point()
     self.distanceToBall = 0
     self.playState = PlayState.CHECK
-    self.stopRushingGoalTime = 0
     self.gameState = GameState.STOP
+    self.stopRushingGoalTime = 0
 
     #figure out which robot I am
     self.robotAssignment = rospy.get_param('robot', 1)
@@ -55,8 +55,8 @@ class Vektory:
       print("Invalid robot assignemnt! Assigning 1")
       self.robotAssignment = 1
 
-    self.lastBall = Ball()
-    self.lastHome1 = RobotLocation()
+    self.lastBallLocation = Point()
+    self.lastHome1Location = RobotLocation()
     self.lastTimeStamp = -1
     self.currBallXVel = 0
     self.currBallYVel = 0
@@ -79,8 +79,8 @@ class Vektory:
     #   print("Service did not process request: " + str(exc))
 
   def rotateAroundBallToAngle(self,targetAngle):
-    #lookAtPoint = self.ball.point
-    delta = MotionSkills.deltaBetweenAngles(self.robotLocation.theta, targetAngle)
+    #lookAtPoint = self.ballLocation
+    delta = MotionSkills.deltaBetweenAngles(self.home1Location.theta, targetAngle)
     vektor_x = 0
     vektor_y = 0
     if abs(delta) < .1:
@@ -91,9 +91,9 @@ class Vektory:
     else:
       vektor_y = CIRCLE_SPEED
 
-    #angle = math.atan2(lookAtPoint.y-self.robotLocation.y, lookAtPoint.x-self.robotLocation.x)
+    #angle = math.atan2(lookAtPoint.y-self.home1Location.y, lookAtPoint.x-self.home1Location.x)
 
-    #delta_angle = angle-self.robotLocation.theta
+    #delta_angle = angle-self.home1Location.theta
 
     #bestDelta = math.atan2(math.sin(delta_angle), math.cos(delta_angle)) * SCALE_OMEGA
     #print bestDelta
@@ -111,25 +111,25 @@ class Vektory:
 
   def go_to_point(self,x, y, lookAtPoint=None):
     if lookAtPoint == None:
-      lookAtPoint = self.ball.point
-    desired_theta = math.atan2(lookAtPoint.y-self.robotLocation.y, lookAtPoint.x-self.robotLocation.x)
+      lookAtPoint = self.ballLocation
+    desired_theta = math.atan2(lookAtPoint.y-self.home1Location.y, lookAtPoint.x-self.home1Location.x)
     # print("look point = {},{}, my point = {},{}, ANGLE: {}".format(lookAtPoint.x, lookAtPoint.y, self.robotLocation.x, self.robotLocation.y, desired_theta*180/math.pi))
 
-    vektor_x = self.pidloop(x, self.robotLocation.x, 'x')
-    vektor_y = self.pidloop(y, self.robotLocation.y, 'y')
-    vektor_w = self.pidloop(desired_theta, self.robotLocation.theta, 'theta')
+    vektor_x = self.pidloop(x, self.home1Location.x, 'x')
+    vektor_y = self.pidloop(y, self.home1Location.y, 'y')
+    vektor_w = self.pidloop(desired_theta, self.home1Location.theta, 'theta')
     print("world vel (x, y, w) = ({}, {}, {})").format(vektor_x, vektor_y, vektor_w)
-    self.sendCommand(vektor_x, vektor_y, vektor_w, self.robotLocation.theta)
+    self.sendCommand(vektor_x, vektor_y, vektor_w, self.home1Location.theta)
     return
 
   def updateLocations(self, data):
     try:
         self.locations = Locations()
         self.locations.setLocationsFromMeasurement(data)
-        self.robotLocation = self.locations.home1
-        self.ball.point.x = self.locations.ball.x
-        self.ball.point.y = self.locations.ball.y
-        self.distanceToBall = distance(self.robotLocation, self.locations.ball)
+        self.home1Location = self.locations.home1
+        self.ballLocation.x = self.locations.ball.x
+        self.ballLocation.y = self.locations.ball.y
+        self.distanceToBall = distance(self.home1Location, self.locations.ball)
         #update predictions
         self.updatePredictions()
     except rospy.ServiceException, e:
@@ -137,7 +137,7 @@ class Vektory:
 
   def defensiveStrats(self):
     predBall = self.ballPrediction(1.5)
-    lookAtPoint = self.ball.point
+    lookAtPoint = self.ballLocation
     DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
     DEFENSIVE_Y_COORD = predBall.y
 
@@ -146,20 +146,20 @@ class Vektory:
     DEFENSIVE_Y_COORD = max(DEFENSIVE_Y_COORD, -HEIGHT_FIELD_METER/4)
 
     # only guard if the ball isn't past the robot
-    if self.ball.point.x < self.robotLocation.x:
+    if self.ballLocation.x < self.home1Location.x:
       self.go_to_point(DEFENSIVE_X_COORD, DEFENSIVE_Y_COORD, lookAtPoint)
     else:
       self.go_to_point(DEFENSIVE_X_COORD, HOME_GOAL.y, lookAtPoint)
 
   def play(self):
-    #print (self.robotLocation.x, self.robotLocation.y)
+    #print (self.home1Location.x, self.home1Location.y)
     #self.setSpeed()
     #check if robot is ready to rush goal
     if self.playState == PlayState.CHECK:
       self.playState = PlayState.GET_BEHIND_BALL
-      if self.robotLocation.x > pixelToMeter(345):
+      if self.home1Location.x > pixelToMeter(345):
         self.playState = PlayState.RETURN_TO_PLAY
-      elif (MotionSkills.isPointInFrontOfRobot(self.robotLocation,self.ball.point, 0.5, 0.04 + abs(MAX_SPEED/4))): #This offset compensates for the momentum
+      elif (MotionSkills.isPointInFrontOfRobot(self.home1Location, self.ballLocation, 0.5, 0.04 + abs(MAX_SPEED/4))): #This offset compensates for the momentum
         print("REALLY BEHIND BALL")
         self.playState = PlayState.RUSHGOAL# rush goal
         self.stopRushingGoalTime = getTime() + int(2 * DIS_BEHIND_BALL/MAX_SPEED*100)
@@ -175,19 +175,19 @@ class Vektory:
 
     if self.playState == PlayState.RETURN_TO_PLAY:
       self.go_to_point(CENTER.x, CENTER.y, AWAY_GOAL)
-      if abs(self.robotLocation.x) < .2 and abs(self.robotLocation.y) < .2:
+      if abs(self.home1Location.x) < .2 and abs(self.home1Location.y) < .2:
         self.playState = PlayState.CHECK
 
     #check if ball is behind robot
     if self.playState == PlayState.GET_BEHIND_BALL:
       predBallLoc = self.ballPrediction(time.time() - self.lastTimeStamp)
       desiredPoint = MotionSkills.getPointBehindBallXY(predBallLoc.x, predBallLoc.y, home_goal=AWAY_GOAL)
-      distFromPoint = distance(self.robotLocation, desiredPoint)
+      distFromPoint = distance(self.home1Location, desiredPoint)
       if distFromPoint < 0.1:
         self.playState = PlayState.RUSHGOAL
         self.stopRushingGoalTime = getTime() + 50
         kick()
-      elif self.ball.point.x > AWAY_GOAL:
+      elif self.ballLocation.x > AWAY_GOAL:
         #try go to point
         self.go_to_point(desiredPoint.x, desiredPoint.y)
         #self.go_direction(desiredPoint)
@@ -197,7 +197,7 @@ class Vektory:
     # goFullDefensive()
     #if (robot is anywhere else)
     # goFullOffensive()
-    if self.ball.point.x < WIDTH_FIELD/4:
+    if self.ballLocation.x < WIDTH_FIELD/4:
       self.strategy = Strategy.OFFENSIVE
       self.play()
     else:
@@ -205,6 +205,7 @@ class Vektory:
       self.defensiveStrats()
 
   def scoreGoal(self):
+    pass
     #1. get behind ball
 
 
@@ -222,19 +223,19 @@ class Vektory:
       self.sendCommand(0, 0, 0)
     elif self.gameState == GameState.CENTER:
       self.strategy = Strategy.NONE
-      if distance(self.robotLocation, Point(CENTER.x, CENTER.y)) > MOVEMENT_THRESHOLD:
+      if distance(self.home1Location, Point(CENTER.x, CENTER.y)) > MOVEMENT_THRESHOLD:
         self.go_to_point(CENTER.x, CENTER.y, None)
       else:
         self.sendCommand(0, 0, 0)
     elif self.gameState == GameState.START_POSITION:
       self.strategy = Strategy.NONE
-      if distance(self.robotLocation, START_LOC) > MOVEMENT_THRESHOLD or abs(self.robotLocation.theta) > 0.1:
+      if distance(self.home1Location, START_LOC) > MOVEMENT_THRESHOLD or abs(self.home1Location.theta) > 0.1:
         self.go_to_point(START_LOC.x, START_LOC.y, AWAY_GOAL)
       else:
         self.sendCommand(0, 0, 0)
     elif self.gameState == GameState.GOTOPOINT:
       self.strategy = Strategy.NONE
-      if distance(self.robotLocation, self.clickLocation) > MOVEMENT_THRESHOLD:
+      if distance(self.home1Location, self.clickLocation) > MOVEMENT_THRESHOLD:
         self.go_to_point(self.clickLocation.x, self.clickLocation.y)
       else:
         self.sendCommand(0, 0, 0)
@@ -281,8 +282,8 @@ class Vektory:
     self.lastTimeStamp = newTimeStamp
 
     # update ball prediction
-    ball_vector_x = (self.ball.point.x - self.lastBall.point.x) #x distance traveled
-    ball_vector_y = (self.ball.point.y - self.lastBall.point.y) #y distance traveled
+    ball_vector_x = (self.ballLocation.x - self.lastBallLocation.x) #x distance traveled
+    ball_vector_y = (self.ballLocation.y - self.lastBallLocation.y) #y distance traveled
     ball_mag = math.sqrt(ball_vector_x**2 + ball_vector_y**2)
     ball_angle = math.atan2(ball_vector_y, ball_vector_x)
     ball_velocity = ball_mag/sample_period
@@ -290,12 +291,12 @@ class Vektory:
     self.currBallXVel = ball_vector_x / sample_period
     self.currBallYVel = ball_vector_y / sample_period
 
-    self.lastBall.point.x = self.ball.point.x
-    self.lastBall.point.y = self.ball.point.y
+    self.lastBallLocation.x = self.ballLocation.x
+    self.lastBallLocation.y = self.ballLocation.y
 
     # update robot prediction
-    home1_vector_x = (self.robotLocation.x - self.lastHome1.x) #x distance traveled
-    home1_vector_y = (self.robotLocation.y - self.lastHome1.y) #y distance traveled
+    home1_vector_x = (self.home1Location.x - self.lastHome1Location.x) #x distance traveled
+    home1_vector_y = (self.home1Location.y - self.lastHome1Location.y) #y distance traveled
     home1_mag = math.sqrt(home1_vector_x**2 + home1_vector_y**2)
     home1_angle = math.atan2(home1_vector_y, home1_vector_x)
     home1_velocity = home1_mag/sample_period
@@ -303,13 +304,13 @@ class Vektory:
     self.currHome1XVel = home1_vector_x / sample_period
     self.currHome1YVel = home1_vector_y / sample_period
 
-    self.lastHome1.x = self.robotLocation.x
-    self.lastHome1.y = self.robotLocation.y
+    self.lastHome1Location.x = self.home1Location.x
+    self.lastHome1Location.y = self.home1Location.y
 
   def ballPrediction(self, time_sec):
     #time_sec is saying where will the ball be in 'time_sec' amount of seconds
-    ball_new_position_x = self.ball.point.x + self.currBallXVel*time_sec
-    ball_new_position_y = self.ball.point.y + self.currBallYVel*time_sec
+    ball_new_position_x = self.ballLocation.x + self.currBallXVel*time_sec
+    ball_new_position_y = self.ballLocation.y + self.currBallYVel*time_sec
     return Point(ball_new_position_x, ball_new_position_y)
 
   def resetPIDValues(self):

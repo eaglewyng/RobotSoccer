@@ -315,7 +315,7 @@ class Vektory:
   def pidloop(self, dest_loc, cur_loc, var):
     def getConstants(var):
       if var == 'x' or var == 'y':
-        return (0.01, 0.05, 1.5, 0.0, 0.7, MAX_SPEED)
+        return (0.01, 0.05, 1.1, 0.0, 2.0, MAX_SPEED)
       elif var == 'theta':
         return (0.01, 0.05, 1.7, 0.0, .7, MAX_OMEGA)
     def sat(x, limit):

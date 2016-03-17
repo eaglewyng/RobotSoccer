@@ -6,9 +6,6 @@ import sys
 import time
 from robot_soccer.srv import *
 from robot_soccer.msg import *
-
-
-
 from MotionSkills import *
 from motor_control import roboclaw
 from gamepieces.HomeRobot import HomeRobot
@@ -124,31 +121,6 @@ class Vektory:
     self.sendCommand(0, good_y, good, 0)
     #self.sendCommand(vektor_x, vektor_y, bestDelta, 0)
 
-  def go_direction(self, point):
-    angle = MotionSkills.angleBetweenPoints(self.robotLocation,point)
-    self.vel_x = math.cos(angle) * MAX_SPEED
-    self.vel_y = math.sin(angle) * MAX_SPEED
-    des_angle = MotionSkills.angleBetweenPoints(self.ball.point,HOME_GOAL)
-    delta_angle = MotionSkills.deltaBetweenAngles(self.robotLocation.theta,des_angle)
-    if abs(delta_angle) < .1:
-      self.omega = 0
-    else:
-      self.omega = delta_angle
-    self.newCommand = True
-
-  def go_direction2(self, point):
-    angle = MotionSkills.angleBetweenPoints(self.robotLocation,point)
-    vel_x = math.cos(angle) * MAX_SPEED
-    vel_y = math.sin(angle) * MAX_SPEED
-    des_angle = MotionSkills.angleBetweenPoints(self.ball.point,HOME_GOAL)
-    delta_angle = MotionSkills.deltaBetweenAngles(self.robotLocation.theta,des_angle)
-    if abs(delta_angle) < .1:
-      omega = 0
-    else:
-      omega = delta_angle * 3.0
-    self.sendCommand(vel_x,vel_y,omega,self.robotLocation.theta)
-
-
   def go_to_point(self,x, y, lookAtPoint=None):
     if lookAtPoint == None:
       lookAtPoint = self.ball.point
@@ -162,45 +134,6 @@ class Vektory:
     self.sendCommand(vektor_x, vektor_y, vektor_w, self.robotLocation.theta)
     return
 
-    #print "go_to_point"
-    if lookAtPoint == None:
-      lookAtPoint = self.ball.point
-    desired_x = x
-    desired_y = y
-
-    print("desired (x, y) = ({}, {})").format(desired_x, desired_y)
-    print("my pos (x, y, t) = ({}, {}, {})").format(self.robotLocation.x, self.robotLocation.y, self.robotLocation.theta)
-
-    vektor_x = (desired_x-self.robotLocation.x) * SCALE_VEL
-    vektor_y = (desired_y-self.robotLocation.y) * SCALE_VEL
-
-    mag = math.sqrt(vektor_x**2+vektor_y**2)
-    angle = math.atan2(lookAtPoint.y-self.robotLocation.y, lookAtPoint.x-self.robotLocation.x)
-
-    delta_angle = angle-self.robotLocation.theta
-    print("delta angle = {}").format(delta_angle*180/math.pi)
-
-    bestDelta = math.atan2(math.sin(delta_angle), math.cos(delta_angle)) * SCALE_OMEGA
-    #print bestDelta
-    if mag >= MAX_SPEED:
-      vektor_x = (MAX_SPEED/mag)*vektor_x
-      vektor_y = (MAX_SPEED/mag)*vektor_y
-    elif mag < MIN_SPEED:
-      vektor_x = 0
-      vektor_y = 0
-
-    # print("WAT {}".format(bestDelta))
-
-    if abs(bestDelta) > MAX_OMEGA:
-      bestDelta = MAX_OMEGA
-    elif abs(bestDelta) < MIN_OMEGA:
-      bestDelta = 0
-    bestDelta = 0
-
-    # print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
-
-    self.sendCommand(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
-
   def updateLocations(self, data):
     try:
         self.locations = Locations()
@@ -211,7 +144,6 @@ class Vektory:
         self.distanceToBall = distance(self.robotLocation, self.locations.ball)
         #update predictions
         self.updatePredictions()
-
     except rospy.ServiceException, e:
         print "service call failed: %s"%e
 

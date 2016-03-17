@@ -471,7 +471,7 @@ class Vektory:
         self.stopped = True;
     elif self.gameState == GameState.goToPoint:
       self.strategy = Strategy.NONE
-      clickLocation = Point(clickLocationX, clickLocationY)
+      clickLocation = Point(self.clickLocationX, self.clickLocationY)
       if distance(self.robotLocation, clickLocation) > MOVEMENT_THRESHOLD:
         self.go_to_point(self.clickLocationX, self.clickLocationY)
       elif self.stopped == False:

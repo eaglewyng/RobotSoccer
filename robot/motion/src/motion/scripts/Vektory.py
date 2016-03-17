@@ -235,81 +235,6 @@ class Vektory:
     else:
       self.go_to_point(DEFENSIVE_X_COORD, HOME_GOAL.y, lookAtPoint)
 
-
-  def old(self):
-    if self.testState == TestState.check:
-      if self.robotLocation.x > (self.ball.point.x-DIS_BEHIND_BALL):
-        self.testState = TestState.getBehindBall
-      else:
-        self.testState = TestState.rushGoal
-        self.stopRushingGoalTime = getTime() + 100
-
-    if self.testState == TestState.getBehindBall:
-      point = Point(self.ball.point.x-DIS_BEHIND_BALL, self.ball.point.y)
-      if self.robotLocation.y > self.ball.point.y:
-        point.y = point.y + DIS_BEHIND_BALL
-      else:
-        point.y = point.y - DIS_BEHIND_BALL
-      self.go_direction2(point)
-      self.testState = TestState.check
-
-    if self.testState == TestState.rushGoal:
-      if self.ball.point.y < -.25 and self.robotLocation.y > (self.ball.point.y + DIS_BEHIND_BALL):
-        point = Point(self.ball.point.x,self.ball.point.y - 1.0)
-        self.go_direction2(point)
-      elif self.ball.point.y > .25 and self.robotLocation.y < (self.ball.point.y - DIS_BEHIND_BALL):
-        point = Point(self.ball.point.x,self.ball.point.y + 1.0)
-        self.go_direction2(point)
-      elif abs(self.distanceToBall) > (DIS_BEHIND_BALL*3/4):
-        self.go_direction2(self.ball.point)
-      else:
-        self.go_direction2(HOME_GOAL)
-      if getTime() >= self.stopRushingGoalTime:
-        self.testState = TestState.check
-
-  def test(self):
-    global HOME_GOAL
-    HOME_GOAL = Point(HOME_GOAL.x,0)
-
-    # Kick the ball off of the sides when it is too close to the side
-    if self.ball.point.y < (MARGIN - HEIGHT_FIELD_METER/2):
-      HOME_GOAL = Point(HOME_GOAL.x, -HEIGHT_FIELD_METER)
-    if self.ball.point.y > (HEIGHT_FIELD_METER/2 - MARGIN):
-      HOME_GOAL = Point(HOME_GOAL.x, HEIGHT_FIELD_METER)
-
-    # Make sure the robot is behind the ball and facing the goal
-    if self.testState == TestState.check:
-      self.testState = TestState.getBehindBall
-      angleBallGoal = MotionSkills.angleBetweenPoints(self.ball.point,HOME_GOAL)
-      deltaAngle = MotionSkills.deltaBetweenAngles(self.robotLocation.theta,angleBallGoal)
-      if MotionSkills.isPointInFrontOfRobot(self.robotLocation,self.ball.point) and abs(deltaAngle) < .12:
-        self.testState = TestState.rushGoal
-        self.stopRushingGoalTime = getTime() + 45
-
-    # Get behind the ball. Move to the side first is necessary
-    if self.testState == TestState.getBehindBall:
-      if (self.ball.point.x + .05) < (self.robotLocation.x):
-          point = Point(self.ball.point.x)
-          if self.ball.point.y < self.robotLocation.y:
-              point.y = self.ball.point.y + DIS_BEHIND_BALL
-          else:
-              point.y = self.ball.point.y - DIS_BEHIND_BALL
-          #Move to the side of the ball
-          self.go_to_point(point.x,point.y)
-      #Go to behind ball
-      else:
-          behindTheBallPoint = MotionSkills.getPointBehindBall(self.ball,HOME_GOAL)
-          self.go_to_point(behindTheBallPoint.x,behindTheBallPoint.y)
-      self.testState = TestState.check
-
-    # Rush the goal and kick for the specified time
-    if self.testState == TestState.rushGoal:
-      self.go_to_point(HOME_GOAL.x,HOME_GOAL.y,HOME_GOAL)
-      if self.distanceToBall < .05:
-        kick()
-      if self.stopRushingGoalTime <= getTime():
-        self.testState = TestState.check
-
   def play(self):
     # self.commandRoboclaws()
     #print (self.robotLocation.x, self.robotLocation.y)
@@ -351,30 +276,6 @@ class Vektory:
         self.go_to_point(desiredPoint.x, desiredPoint.y)
         #self.go_direction(desiredPoint)
 
-      # print("GETTING BEHIND BALL")
-      # #robot in front of ball
-      # if MotionSkills.isBallBehindRobot(self.robotLocation, self.ball.point):
-      #   print("DONE GOOFED")
-      #   # This gets a point beside the ball perpendicular to the line of the ball and the goal
-      #   #point = getPointBesideBall(self.robotLocation, self.ball.point, DIS_BEHIND_BALL)
-
-      #   point = Point(self.ball.point.x)
-      #   # if robot above ball
-      #   if self.ball.point.y < self.robotLocation.y:
-      #       point.y = self.ball.point.y + DIS_BEHIND_BALL
-      #   else:
-      #       point.y = self.ball.point.y - DIS_BEHIND_BALL
-
-      #   self.go_direction(point)
-      #   #Move to the side of the ball
-      #   #self.go_to_point(point.x,point.y)
-      # #robot behind ball
-      # else:
-      #   print("GOT BEHIND BALL")
-      #   behindTheBallPoint = MotionSkills.getPointBehindBall(self.ball)
-      #   self.go_direction(behindTheBallPoint)
-      #   self.state = State.check
-
   def jarjar_oneRobotStrategy(self):
     #if (robot is on the bottom quarter of our field)
     # goFullDefensive()
@@ -386,8 +287,6 @@ class Vektory:
     else:
       self.strategy = Strategy.DEFENSIVE
       self.defensiveStrats()
-
-
 
   def scoreGoal(self):
     self.commandRoboclaws()

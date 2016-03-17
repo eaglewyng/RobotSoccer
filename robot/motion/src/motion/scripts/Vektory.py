@@ -85,7 +85,7 @@ class Vektory:
     self.strategy = Strategy.DEFENSIVE
 
   def sendCommand(self, vel_x, vel_y, omega, theta = 0):
-    command = RobotCommand(-1,vel_x, vel_y, omega, theta)
+    command = RobotCommand(-1, vel_x, vel_y, omega, theta)
     command.execute()
     sendCommand = rospy.ServiceProxy('commandSent', commandsent)
     # try:
@@ -201,62 +201,16 @@ class Vektory:
 
     self.sendCommand(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
 
-  def go_to_point_maxspeed(self,x, y, lookAtPoint=None):
-    #print "go_to_point"
-    if lookAtPoint == None:
-      lookAtPoint = self.ball.point
-    desired_x = x
-    desired_y = y
-
-    print("desired (x, y) = ({}, {})").format(desired_x, desired_y)
-    print("my pos (x, y, t) = ({}, {}, {})").format(self.robotLocation.x, self.robotLocation.y, self.robotLocation.theta)
-
-    vektor_x = (desired_x-self.robotLocation.x) * SCALE_VEL
-    vektor_y = (desired_y-self.robotLocation.y) * SCALE_VEL
-
-    mag = math.sqrt(vektor_x**2+vektor_y**2)
-    angle = math.atan2(lookAtPoint.y-self.robotLocation.y, lookAtPoint.x-self.robotLocation.x)
-
-    delta_angle = angle-self.robotLocation.theta
-    print("delta angle = {}").format(delta_angle*180/math.pi)
-
-    bestDelta = math.atan2(math.sin(delta_angle), math.cos(delta_angle)) * SCALE_OMEGA
-    #print bestDelta
-    vektor_x = (MAX_SPEED/mag)*vektor_x
-    vektor_y = (MAX_SPEED/mag)*vektor_y
-    #if mag >= MAX_SPEED:
-    #  vektor_x = (MAX_SPEED/mag)*vektor_x
-    #  vektor_y = (MAX_SPEED/mag)*vektor_y
-    #elif mag < MIN_SPEED:
-    #  vektor_x = 0
-    #  vektor_y = 0
-
-    if abs(bestDelta) > MAX_OMEGA:
-      bestDelta = MAX_OMEGA
-    elif abs(bestDelta) < MIN_OMEGA:
-      bestDelta = 0
-    bestDelta = 0
-
-    # print("world vel (x, y, w, t) = ({}, {}, {}, {})").format(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
-
-    self.sendCommand(vektor_x, vektor_y, bestDelta, self.robotLocation.theta)
-
   def updateLocations(self, data):
     try:
-          # locations = rospy.ServiceProxy('locations', curlocs, persistent=True)
-          # response = locations()
-          #self.locations = pickle.loads(response.pickle)
         self.locations = Locations()
         self.locations.setLocationsFromMeasurement(data)
         self.robotLocation = self.locations.home1
         self.ball.point.x = self.locations.ball.x
         self.ball.point.y = self.locations.ball.y
         self.distanceToBall = distance(self.robotLocation, self.locations.ball)
-        #print 'time: %f x: %f  y: %f  theta: %f' %(robotLocation.timestamp, robotLocation.x, robotLocation.y, robotLocation.theta)
         #update predictions
         self.updatePredictions()
-        # print("{0:.2f}".format(time.time()))
-        # self.last = time.time()
 
     except rospy.ServiceException, e:
         print "service call failed: %s"%e
@@ -266,15 +220,16 @@ class Vektory:
     velchange.goXYOmegaTheta(self.vel_x,self.vel_y,self.omega,self.robotLocation.theta)
 
   def defensiveStrats(self):
-    predBallXY = self.ballPrediction(1.5)	#TODO change this to be parameterizable somehow
+    predBall = self.ballPrediction(1.5)
     lookAtPoint = self.ball.point
     DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
-    # DEFENSIVE_Y_COORD = self.ball.point.y
-    DEFENSIVE_Y_COORD = predBallXY[1]
+    DEFENSIVE_Y_COORD = predBall.y
 
+    # don't leave the goalie box
     DEFENSIVE_Y_COORD = min(DEFENSIVE_Y_COORD, HEIGHT_FIELD_METER/4)
     DEFENSIVE_Y_COORD = max(DEFENSIVE_Y_COORD, -HEIGHT_FIELD_METER/4)
 
+    # only guard if the ball isn't past the robot
     if self.ball.point.x < self.robotLocation.x:
       self.go_to_point(DEFENSIVE_X_COORD, DEFENSIVE_Y_COORD, lookAtPoint)
     else:
@@ -385,8 +340,8 @@ class Vektory:
 
     #check if ball is behind robot
     if self.state == State.getBehindBall:
-      predBallLoc = this.ballPrediction(time.time() - self.lastTimeStamp)
-      desiredPoint = MotionSkills.getPointBehindBallXY(predBallLoc(0), predBallLoc(1), home_goal=AWAY_GOAL)
+      predBallLoc = self.ballPrediction(time.time() - self.lastTimeStamp)
+      desiredPoint = MotionSkills.getPointBehindBallXY(predBallLoc.x, predBallLoc.y, home_goal=AWAY_GOAL)
       distFromPoint = distance(self.robotLocation, desiredPoint)
       if distFromPoint < 0.1:
         self.state = State.rushGoal
@@ -558,7 +513,7 @@ class Vektory:
     #time_sec is saying where will the ball be in 'time_sec' amount of seconds
     ball_new_position_x = self.ball.point.x + self.currBallXVel*time_sec
     ball_new_position_y = self.ball.point.y + self.currBallYVel*time_sec
-    return (ball_new_position_x, ball_new_position_y)
+    return Point(ball_new_position_x, ball_new_position_y)
 
   def resetPIDState(self):
     for key in self.integrator:

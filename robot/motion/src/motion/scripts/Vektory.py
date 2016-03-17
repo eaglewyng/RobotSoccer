@@ -16,6 +16,7 @@ from utilities.kick import *
 from kalman_filter.Locations import *
 import sched
 import cPickle as pickle
+from velocity import *
 
 from enum import Enum
 class GameState(Enum):
@@ -42,7 +43,9 @@ class Vektory:
   def __init__(self):
     self.locations = None
     self.ballLocation = Point()
+    self.lastBallLocation = Point()
     self.home1Location = RobotLocation()
+    self.lastHome1Location = RobotLocation()
     self.clickLocation = Point()
     self.distanceToBall = 0
     self.playState = PlayState.CHECK
@@ -55,11 +58,9 @@ class Vektory:
       print("Invalid robot assignemnt! Assigning 1")
       self.robotAssignment = 1
 
-    self.lastBallLocation = Point()
-    self.lastHome1Location = RobotLocation()
     self.lastTimeStamp = -1
-    self.currBallXVel = 0
-    self.currBallYVel = 0
+    self.ballVelocity = Velocity()
+    self.home1Velocity = Velocity()
 
     initkick()
 
@@ -79,7 +80,7 @@ class Vektory:
     #   print("Service did not process request: " + str(exc))
 
   def getMyLocation(self):
-    if robotAssignment == 1:
+    if self.robotAssignment == 1:
       return self.home1Location
     else:
       return self.home2Location
@@ -294,8 +295,8 @@ class Vektory:
     ball_angle = math.atan2(ball_vector_y, ball_vector_x)
     ball_velocity = ball_mag/sample_period
 
-    self.currBallXVel = ball_vector_x / sample_period
-    self.currBallYVel = ball_vector_y / sample_period
+    self.ballVelocity.x = ball_vector_x / sample_period
+    self.ballVelocity.y = ball_vector_y / sample_period
 
     self.lastBallLocation.x = self.ballLocation.x
     self.lastBallLocation.y = self.ballLocation.y
@@ -307,16 +308,16 @@ class Vektory:
     home1_angle = math.atan2(home1_vector_y, home1_vector_x)
     home1_velocity = home1_mag/sample_period
 
-    self.currHome1XVel = home1_vector_x / sample_period
-    self.currHome1YVel = home1_vector_y / sample_period
+    self.home1Velocity.x = home1_vector_x / sample_period
+    self.home1Velocity.y = home1_vector_y / sample_period
 
     self.lastHome1Location.x = self.home1Location.x
     self.lastHome1Location.y = self.home1Location.y
 
   def ballPrediction(self, time_sec):
     #time_sec is saying where will the ball be in 'time_sec' amount of seconds
-    ball_new_position_x = self.ballLocation.x + self.currBallXVel*time_sec
-    ball_new_position_y = self.ballLocation.y + self.currBallYVel*time_sec
+    ball_new_position_x = self.ballLocation.x + self.ballVelocity.x*time_sec
+    ball_new_position_y = self.ballLocation.y + self.ballVelocity.y*time_sec
     return Point(ball_new_position_x, ball_new_position_y)
 
   def resetPIDValues(self):
@@ -374,7 +375,7 @@ class Vektory:
     MIN_SPEED_THETA = 4
     THRESHOLD = 0.2
 
-    if math.sqrt(self.currHome1XVel**2 + self.currHome1YVel**2) < 0.2:
+    if math.sqrt(self.home1Velocity.x**2 + self.home1Velocity.y**2) < 0.2:
       if var == 'x' or var == 'y':
         # print("increase {}".format(var))
         if abs(velocity) > THRESHOLD:

@@ -78,6 +78,12 @@ class Vektory:
     # except rospy.ServiceException as exc:
     #   print("Service did not process request: " + str(exc))
 
+  def getMyLocation(self):
+    if robotAssignment == 1:
+      return self.home1Location
+    else:
+      return self.home2Location
+
   def rotateAroundBallToAngle(self,targetAngle):
     #lookAtPoint = self.ballLocation
     delta = MotionSkills.deltaBetweenAngles(self.home1Location.theta, targetAngle)
@@ -112,24 +118,24 @@ class Vektory:
   def go_to_point(self,x, y, lookAtPoint=None):
     if lookAtPoint == None:
       lookAtPoint = self.ballLocation
-    desired_theta = math.atan2(lookAtPoint.y-self.home1Location.y, lookAtPoint.x-self.home1Location.x)
-    # print("look point = {},{}, my point = {},{}, ANGLE: {}".format(lookAtPoint.x, lookAtPoint.y, self.robotLocation.x, self.robotLocation.y, desired_theta*180/math.pi))
 
-    vektor_x = self.pidloop(x, self.home1Location.x, 'x')
-    vektor_y = self.pidloop(y, self.home1Location.y, 'y')
-    vektor_w = self.pidloop(desired_theta, self.home1Location.theta, 'theta')
+    desired_theta = math.atan2(lookAtPoint.y-self.getMyLocation().y, lookAtPoint.x-self.getMyLocation().x)
+
+    vektor_x = self.pidloop(x, self.getMyLocation().x, 'x')
+    vektor_y = self.pidloop(y, self.getMyLocation().y, 'y')
+    vektor_w = self.pidloop(desired_theta, self.getMyLocation().theta, 'theta')
     print("world vel (x, y, w) = ({}, {}, {})").format(vektor_x, vektor_y, vektor_w)
-    self.sendCommand(vektor_x, vektor_y, vektor_w, self.home1Location.theta)
-    return
+    self.sendCommand(vektor_x, vektor_y, vektor_w, self.getMyLocation().theta)
 
   def updateLocations(self, data):
     try:
         self.locations = Locations()
         self.locations.setLocationsFromMeasurement(data)
         self.home1Location = self.locations.home1
+        self.home2Location = self.locations.home2
         self.ballLocation.x = self.locations.ball.x
         self.ballLocation.y = self.locations.ball.y
-        self.distanceToBall = distance(self.home1Location, self.locations.ball)
+        self.distanceToBall = distance(self.getMyLocation(), self.locations.ball)
         #update predictions
         self.updatePredictions()
     except rospy.ServiceException, e:

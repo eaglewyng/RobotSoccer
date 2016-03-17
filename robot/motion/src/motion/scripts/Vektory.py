@@ -234,7 +234,7 @@ class Vektory:
         self.sendCommand(0, 0, 0)
 
   def executeCommCenterCommand(self,req):
-    self.resetPIDState()
+    self.resetPIDValues()
     if req.comm == 1:
       self.gameState = GameState.stop
       self.playState = PlayState.check
@@ -308,7 +308,7 @@ class Vektory:
     ball_new_position_y = self.ball.point.y + self.currBallYVel*time_sec
     return Point(ball_new_position_x, ball_new_position_y)
 
-  def resetPIDState(self):
+  def resetPIDValues(self):
     for key in self.integrator:
       self.integrator[key] = 0
     for key in self.differentiator:

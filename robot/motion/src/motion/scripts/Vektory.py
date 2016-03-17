@@ -251,7 +251,7 @@ class Vektory:
         self.robotLocation = self.locations.home1
         self.ball.point.x = self.locations.ball.x
         self.ball.point.y = self.locations.ball.y
-        self.distanceToBall = math.sqrt((self.robotLocation.x-self.locations.ball.x)**2+(self.robotLocation.y-self.locations.ball.y)**2)
+        self.distanceToBall = distance(self.robotLocation, self.locations.ball)
         #print 'time: %f x: %f  y: %f  theta: %f' %(robotLocation.timestamp, robotLocation.x, robotLocation.y, robotLocation.theta)
         #update predictions
         self.updatePredictions()
@@ -387,8 +387,7 @@ class Vektory:
     if self.state == State.getBehindBall:
       predBallLoc = this.ballPrediction(time.time() - self.lastTimeStamp)
       desiredPoint = MotionSkills.getPointBehindBallXY(predBallLoc(0), predBallLoc(1), home_goal=AWAY_GOAL)
-      distFromPoint = math.sqrt((self.robotLocation.x - desiredPoint.x)**2
-                              + (self.robotLocation.y - desiredPoint.y)**2)
+      distFromPoint = distance(self.robotLocation, desiredPoint)
       if distFromPoint < 0.1:
         self.state = State.rushGoal
         self.stopRushingGoalTime = getTime() + 50
@@ -458,31 +457,26 @@ class Vektory:
         self.stopped = True;
     elif self.gameState == GameState.center:
       self.strategy = Strategy.NONE
-      if abs(self.robotLocation.x) > CENTER_THRESHOLD or abs(self.robotLocation.y) > CENTER_THRESHOLD:
+      if distance(self.robotLocation, Point(CENTER.x, CENTER.y)) > MOVEMENT_THRESHOLD:
         self.go_to_point(CENTER.x, CENTER.y, None)
       elif self.stopped == False:
         self.sendCommand(0,0,0);
         self.stopped = True;
     elif self.gameState == GameState.startPosition:
       self.strategy = Strategy.NONE
-      if abs(self.robotLocation.x - pixelToMeter(-120)) > .1 or abs(self.robotLocation.y - 0) > .1 or abs(self.robotLocation.theta) > .1:
-        self.go_to_point(pixelToMeter(115), 0, AWAY_GOAL)
+      if distance(self.robotLocation, START_LOC) > MOVEMENT_THRESHOLD or abs(self.robotLocation.theta) > 0.1:
+        self.go_to_point(START_LOC.x, START_LOC.y, AWAY_GOAL)
       elif self.stopped == False:
         self.sendCommand(0,0,0);
         self.stopped = True;
     elif self.gameState == GameState.goToPoint:
       self.strategy = Strategy.NONE
-      if abs(self.robotLocation.x - self.clickLocationX) > CENTER_THRESHOLD/5 or abs(self.robotLocation.y - self.clickLocationY) > CENTER_THRESHOLD/5:
+      clickLocation = Point(clickLocationX, clickLocationY)
+      if distance(self.robotLocation, clickLocation) > MOVEMENT_THRESHOLD:
         self.go_to_point(self.clickLocationX, self.clickLocationY)
       elif self.stopped == False:
         self.sendCommand(0, 0, 0)
         self.stopped = True
-      # if abs(self.robotLocation.x - ) > CENTER_THRESHOLD or abs(self.robotLocation.y) > CENTER_THRESHOLD:
-      #   self.go_to_point(CENTER.x, CENTER.y, None)
-      # elif self.stopped == False:
-      #   self.sendCommand(0,0,0);
-      #   self.stopped = True;
-
 
   def executeCommCenterCommand(self,req):
     self.resetPIDState()
@@ -629,6 +623,9 @@ class Vektory:
       # elif var == 'theta':
       #   velocity = velocity + (MIN_SPEED_THETA if velocity > 0 else -MIN_SPEED_THETA)
     return velocity
+
+def distance(cur_loc, dest_loc):
+  return math.sqrt((cur_loc.x - dest_loc.x)**2 + (cur_loc.y - dest_loc.y)**2)
 
 if __name__ == '__main__':
   winner = Vektory()

@@ -126,7 +126,10 @@ class Vektory:
     try:
         self.locations = Locations()
         self.locations.setLocationsFromMeasurement(data)
-        self.robotLocation = self.locations.home1
+        if self.robotAssignment = 1:
+          self.robotLocation = self.locations.home1
+        else:
+          self.robotLocation = self.locations.home2
         self.ball.point.x = self.locations.ball.x
         self.ball.point.y = self.locations.ball.y
         self.distanceToBall = distance(self.robotLocation, self.locations.ball)

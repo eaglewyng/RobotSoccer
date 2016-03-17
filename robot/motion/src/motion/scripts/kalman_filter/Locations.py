@@ -22,17 +22,17 @@ class Locations:
     def __init__(self):
         self.timestamp = 0
         self.home1 = RobotLocation()
-        # self.home2 = RobotLocation()
+        self.home2 = RobotLocation()
         self.away1 = RobotLocation()
-        # self.away2 = RobotLocation()
+        self.away2 = RobotLocation()
         self.ball = BallLocation()
         
     def setTimestamp(self,timestamp):
         self.timestamp = timestamp;
         self.home1.timestamp = timestamp
-        # self.home2.timestamp = timestamp
+        self.home2.timestamp = timestamp
         self.away1.timestamp = timestamp
-        # self.away2.timestamp = timestamp
+        self.away2.timestamp = timestamp
         self.ball.timestamp = timestamp
         
     def robotCameraAngleCorrection(self, robot_x, robot_y):
@@ -52,12 +52,12 @@ class Locations:
         self.setTimestamp(timeToInt(data.header.stamp))
         self.home1.x, self.home1.y = self.robotCameraAngleCorrection(pixelToMeter(data.home1_x), pixelToMeter(data.home1_y))
         self.home1.theta = degreeToRadian(data.home1_theta)
-        # self.home2.x, self.home2.y = self.robotCameraAngleCorrection(pixelToMeter(data.home2_x), pixelToMeter(data.home2_y))
-        # self.home2.theta = degreeToRadian(data.home2_theta)
+        self.home2.x, self.home2.y = self.robotCameraAngleCorrection(pixelToMeter(data.home2_x), pixelToMeter(data.home2_y))
+        self.home2.theta = degreeToRadian(data.home2_theta)
         self.away1.x, self.away1.y = self.robotCameraAngleCorrection(pixelToMeter(data.away1_x), pixelToMeter(data.away1_y))
         self.away1.theta = degreeToRadian(data.away1_theta)
-        # self.away2.x, self.away2.y = self.robotCameraAngleCorrection(pixelToMeter(data.away2_x), pixelToMeter(data.away2_y))
-        # self.away2.theta = degreeToRadian(data.away2_theta)
+        self.away2.x, self.away2.y = self.robotCameraAngleCorrection(pixelToMeter(data.away2_x), pixelToMeter(data.away2_y))
+        self.away2.theta = degreeToRadian(data.away2_theta)
         self.ball.x = pixelToMeter(data.ball_x)
         self.ball.y = pixelToMeter(data.ball_y)      
         

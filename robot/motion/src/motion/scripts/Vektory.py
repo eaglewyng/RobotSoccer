@@ -19,19 +19,19 @@ import cPickle as pickle
 
 from enum import Enum
 class GameState(Enum):
-  stop = 1
-  play = 2
-  center = 3
-  startPosition = 4
-  test = 5
-  goToPoint = 6
+  STOP = 1
+  PLAY = 2
+  CENTER = 3
+  START_POSITION = 4
+  TEST = 5
+  GOTOPOINT = 6
 
 class PlayState(Enum):
-  rushGoal = 1
-  getBehindBall = 2
-  rotateToAngleBehindBall = 3
-  check = 4
-  returnToPlay = 5
+  RUSHGOAL = 1
+  GET_BEHIND_BALL = 2
+  ROTATE_TO_ANGLE_BEHIND_BALL = 3
+  CHECK = 4
+  RETURN_TO_PLAY = 5
 
 class Strategy(Enum):
   DEFENSIVE = 1
@@ -45,9 +45,9 @@ class Vektory:
     self.robotLocation = None
     self.clickLocation = Point()
     self.distanceToBall = 0
-    self.playState = PlayState.check
+    self.playState = PlayState.CHECK
     self.stopRushingGoalTime = 0
-    self.gameState = GameState.stop
+    self.gameState = GameState.STOP
 
     #figure out which robot I am
     self.robotAssignment = rospy.get_param('robot', 1)
@@ -84,7 +84,7 @@ class Vektory:
     vektor_x = 0
     vektor_y = 0
     if abs(delta) < .1:
-      self.playState = PlayPlayState.check
+      self.playState = PlayState.CHECK
       return
     if delta > 0:
       vektor_y = -CIRCLE_SPEED
@@ -158,36 +158,36 @@ class Vektory:
     #print (self.robotLocation.x, self.robotLocation.y)
     #self.setSpeed()
     #check if robot is ready to rush goal
-    if self.playState == PlayState.check:
-      self.playState = PlayState.getBehindBall
+    if self.playState == PlayState.CHECK:
+      self.playState = PlayState.GET_BEHIND_BALL
       if self.robotLocation.x > pixelToMeter(345):
-        self.playState = PlayState.returnToPlay
+        self.playState = PlayState.RETURN_TO_PLAY
       elif (MotionSkills.isPointInFrontOfRobot(self.robotLocation,self.ball.point, 0.5, 0.04 + abs(MAX_SPEED/4))): #This offset compensates for the momentum
         print("REALLY BEHIND BALL")
-        self.playState = PlayState.rushGoal# rush goal
+        self.playState = PlayState.RUSHGOAL# rush goal
         self.stopRushingGoalTime = getTime() + int(2 * DIS_BEHIND_BALL/MAX_SPEED*100)
 
-    if self.playState == PlayState.rushGoal:
+    if self.playState == PlayState.RUSHGOAL:
       print("RUSHING")
       #self.speed = RUSH_SPEED
       self.go_to_point(AWAY_GOAL.x, AWAY_GOAL.y, AWAY_GOAL)
       if getTime() >= self.stopRushingGoalTime:
         kick()
         print("KICKED")
-        self.playState = PlayState.check
+        self.playState = PlayState.CHECK
 
-    if self.playState == PlayState.returnToPlay:
+    if self.playState == PlayState.RETURN_TO_PLAY:
       self.go_to_point(CENTER.x, CENTER.y, AWAY_GOAL)
       if abs(self.robotLocation.x) < .2 and abs(self.robotLocation.y) < .2:
-        self.playState = PlayState.check
+        self.playState = PlayState.CHECK
 
     #check if ball is behind robot
-    if self.playState == PlayState.getBehindBall:
+    if self.playState == PlayState.GET_BEHIND_BALL:
       predBallLoc = self.ballPrediction(time.time() - self.lastTimeStamp)
       desiredPoint = MotionSkills.getPointBehindBallXY(predBallLoc.x, predBallLoc.y, home_goal=AWAY_GOAL)
       distFromPoint = distance(self.robotLocation, desiredPoint)
       if distFromPoint < 0.1:
-        self.playState = PlayState.rushGoal
+        self.playState = PlayState.RUSHGOAL
         self.stopRushingGoalTime = getTime() + 50
         kick()
       elif self.ball.point.x > AWAY_GOAL:
@@ -215,27 +215,27 @@ class Vektory:
 
   def executionLoop(self, scheduler):
     scheduler.enter(0.1, 1, self.executionLoop,(scheduler,))
-    if self.gameState == GameState.play:
+    if self.gameState == GameState.PLAY:
       self.jarjar_oneRobotStrategy()
-    elif self.gameState == GameState.test:
+    elif self.gameState == GameState.TEST:
       self.defensiveStrats()
       self.strategy = Strategy.DEFENSIVE
-    elif self.gameState == GameState.stop:
+    elif self.gameState == GameState.STOP:
       self.strategy = Strategy.NONE
       self.sendCommand(0, 0, 0)
-    elif self.gameState == GameState.center:
+    elif self.gameState == GameState.CENTER:
       self.strategy = Strategy.NONE
       if distance(self.robotLocation, Point(CENTER.x, CENTER.y)) > MOVEMENT_THRESHOLD:
         self.go_to_point(CENTER.x, CENTER.y, None)
       else:
         self.sendCommand(0, 0, 0)
-    elif self.gameState == GameState.startPosition:
+    elif self.gameState == GameState.START_POSITION:
       self.strategy = Strategy.NONE
       if distance(self.robotLocation, START_LOC) > MOVEMENT_THRESHOLD or abs(self.robotLocation.theta) > 0.1:
         self.go_to_point(START_LOC.x, START_LOC.y, AWAY_GOAL)
       else:
         self.sendCommand(0, 0, 0)
-    elif self.gameState == GameState.goToPoint:
+    elif self.gameState == GameState.GOTOPOINT:
       self.strategy = Strategy.NONE
       if distance(self.robotLocation, self.clickLocation) > MOVEMENT_THRESHOLD:
         self.go_to_point(self.clickLocation.x, self.clickLocation.y)
@@ -245,20 +245,20 @@ class Vektory:
   def executeCommCenterCommand(self,req):
     self.resetPIDValues()
     if req.comm == 1:
-      self.gameState = GameState.stop
-      self.playState = PlayState.check
+      self.gameState = GameState.STOP
+      self.playState = PlayState.CHECK
     elif req.comm == 2:
-      self.gameState = GameState.play
+      self.gameState = GameState.PLAY
     elif req.comm == 3:
-      self.gameState = GameState.center
-      self.playState = PlayState.check
+      self.gameState = GameState.CENTER
+      self.playState = PlayState.CHECK
     elif req.comm == 4:
-      self.gameState = GameState.startPosition
-      self.playState = PlayState.check
+      self.gameState = GameState.START_POSITION
+      self.playState = PlayState.CHECK
     elif req.comm == 5:
-      self.gameState = GameState.test
+      self.gameState = GameState.TEST
     elif req.comm == 6:
-      self.gameState = GameState.goToPoint
+      self.gameState = GameState.GOTOPOINT
       self.clickLocation = Point(pixelToMeter(req.x), pixelToMeter(req.y))
     return commcenterResponse()
 
@@ -274,7 +274,7 @@ class Vektory:
     s = sched.scheduler(time.time, time.sleep)
     rospy.Subscriber("locTopic", locations, self.updateLocations)
     print "Subscribed to locTopic!"
-    s.enter(0,1,self.executionLoop,(s,))
+    s.enter(0, 1, self.executionLoop, (s,))
     s.run()
 
   def updatePredictions(self):
@@ -303,8 +303,6 @@ class Vektory:
     home1_angle = math.atan2(home1_vector_y, home1_vector_x)
     home1_velocity = home1_mag/sample_period
 
-    # print(home1_velocity)
-
     self.currHome1XVel = home1_vector_x / sample_period
     self.currHome1YVel = home1_vector_y / sample_period
 
@@ -326,7 +324,7 @@ class Vektory:
   def pidloop(self, dest_loc, cur_loc, var):
     def getConstants(var):
       if var == 'x' or var == 'y':
-        return (0.01, 0.05, 1.5, 0.0, 0.7, MAX_SPEED)
+        return (0.01, 0.05, 1.1, 0.0, 2.0, MAX_SPEED)
       elif var == 'theta':
         return (0.01, 0.05, 1.7, 0.0, .7, MAX_OMEGA)
     def sat(x, limit):

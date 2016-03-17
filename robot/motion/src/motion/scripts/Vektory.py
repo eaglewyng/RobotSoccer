@@ -63,7 +63,6 @@ class Vektory:
     self.vel_y = 0
     self.omega = 0
     self.gameState = GameState.stop
-    self.stopped = True
     self.testState = TestState.check
 
     self.lastBall = Ball()
@@ -233,58 +232,48 @@ class Vektory:
     if self.gameState == GameState.play:
       self.jarjar_oneRobotStrategy()
     elif self.gameState == GameState.test:
-      #self.test()
       self.defensiveStrats()
       self.strategy = Strategy.DEFENSIVE
     elif self.gameState == GameState.stop:
       self.strategy = Strategy.NONE
-      if self.stopped == False:
-        self.sendCommand(0,0,0);
-        self.stopped = True;
+      self.sendCommand(0, 0, 0)
     elif self.gameState == GameState.center:
       self.strategy = Strategy.NONE
       if distance(self.robotLocation, Point(CENTER.x, CENTER.y)) > MOVEMENT_THRESHOLD:
         self.go_to_point(CENTER.x, CENTER.y, None)
-      elif self.stopped == False:
-        self.sendCommand(0,0,0);
-        self.stopped = True;
+      else:
+        self.sendCommand(0, 0, 0)
     elif self.gameState == GameState.startPosition:
       self.strategy = Strategy.NONE
       if distance(self.robotLocation, START_LOC) > MOVEMENT_THRESHOLD or abs(self.robotLocation.theta) > 0.1:
         self.go_to_point(START_LOC.x, START_LOC.y, AWAY_GOAL)
-      elif self.stopped == False:
-        self.sendCommand(0,0,0);
-        self.stopped = True;
+      else:
+        self.sendCommand(0, 0, 0)
     elif self.gameState == GameState.goToPoint:
       self.strategy = Strategy.NONE
       if distance(self.robotLocation, self.clickLocation) > MOVEMENT_THRESHOLD:
         self.go_to_point(self.clickLocation.x, self.clickLocation.y)
-      elif self.stopped == False:
+      else:
         self.sendCommand(0, 0, 0)
-        self.stopped = True
 
   def executeCommCenterCommand(self,req):
     self.resetPIDState()
     if req.comm == 1:
       self.gameState = GameState.stop
       self.state = State.check
-      self.stopped = False
     elif req.comm == 2:
       self.gameState = GameState.play
     elif req.comm == 3:
       self.gameState = GameState.center
       self.state = State.check
-      self.stopped = False
     elif req.comm == 4:
       self.gameState = GameState.startPosition
       self.state = State.check
-      self.stopped = False
     elif req.comm == 5:
       self.testState = TestState.check
       self.gameState = GameState.test
     elif req.comm == 6:
       self.gameState = GameState.goToPoint
-      self.stopped = False
       self.clickLocation = Point(pixelToMeter(req.x), pixelToMeter(req.y))
     return commcenterResponse()
 

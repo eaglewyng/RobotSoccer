@@ -49,6 +49,12 @@ class Vektory:
     self.stopRushingGoalTime = 0
     self.gameState = GameState.STOP
 
+    #figure out which robot I am
+    self.robotAssignment = rospy.get_param('robot', 1)
+    if self.robotAssignment != 1 and self.robotAssignment != 2:
+      print("Invalid robot assignemnt! Assigning 1")
+      self.robotAssignment = 1
+
     self.lastBall = Ball()
     self.lastHome1 = RobotLocation()
     self.lastTimeStamp = -1

@@ -13,7 +13,7 @@ roscore > /dev/null &
 # start prediction node
 cd ~/RobotSoccer/robot/motion
 source devel/setup.bash
-rosrun robot_soccer prediction_node.py > /dev/null &
+rosrun robot_soccer prediction_node.py _robot:=$1 > /dev/null &
 
 # start Vektory
 rosrun robot_soccer Vektory.py &

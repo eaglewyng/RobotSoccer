@@ -265,7 +265,7 @@ class Vektory:
     s = sched.scheduler(time.time, time.sleep)
     rospy.Subscriber("locTopic", locations, self.updateLocations)
     print "Subscribed to locTopic!"
-    s.enter(0,1,self.executionLoop,(s,))
+    s.enter(0, 1, self.executionLoop, (s,))
     s.run()
 
   def updatePredictions(self):

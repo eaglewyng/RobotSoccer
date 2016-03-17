@@ -26,22 +26,12 @@ class GameState(Enum):
   test = 5
   goToPoint = 6
 
-class State(Enum):
+class PlayState(Enum):
   rushGoal = 1
   getBehindBall = 2
   rotateToAngleBehindBall = 3
   check = 4
   returnToPlay = 5
-
-class TestState(Enum):
-  check = 1
-  rushGoal = 2
-  getBehindBall = 3
-
-class Rotate(Enum):
-  none = 1
-  clockwise = 2
-  counterClockwise = 3
 
 class Strategy(Enum):
   DEFENSIVE = 1
@@ -55,16 +45,9 @@ class Vektory:
     self.robotLocation = None
     self.clickLocation = Point()
     self.distanceToBall = 0
-    self.state = State.check
-    self.rotate = Rotate.none
+    self.playState = PlayState.check
     self.stopRushingGoalTime = 0
-    self.newCommand = False
-    self.vel_x = 0
-    self.vel_y = 0
-    self.omega = 0
     self.gameState = GameState.stop
-    self.stopped = True
-    self.testState = TestState.check
 
     #figure out which robot I am
     self.robotAssignment = rospy.get_param('robot', 1)
@@ -101,7 +84,7 @@ class Vektory:
     vektor_x = 0
     vektor_y = 0
     if abs(delta) < .1:
-      self.state = State.check
+      self.playState = PlayPlayState.check
       return
     if delta > 0:
       vektor_y = -CIRCLE_SPEED
@@ -152,10 +135,6 @@ class Vektory:
     except rospy.ServiceException, e:
         print "service call failed: %s"%e
 
-  def commandRoboclaws(self):
-    print("cmd robo: ({}, {}, {}, {})").format(self.vel_x, self.vel_y, self.omega, self.robotLocation.theta)
-    velchange.goXYOmegaTheta(self.vel_x,self.vel_y,self.omega,self.robotLocation.theta)
-
   def defensiveStrats(self):
     predBall = self.ballPrediction(1.5)
     lookAtPoint = self.ball.point
@@ -173,40 +152,39 @@ class Vektory:
       self.go_to_point(DEFENSIVE_X_COORD, HOME_GOAL.y, lookAtPoint)
 
   def play(self):
-    # self.commandRoboclaws()
     #print (self.robotLocation.x, self.robotLocation.y)
     #self.setSpeed()
     #check if robot is ready to rush goal
-    if self.state == State.check:
-      self.state = State.getBehindBall
+    if self.playState == PlayState.check:
+      self.playState = PlayState.getBehindBall
       if self.robotLocation.x > pixelToMeter(345):
-        self.state = State.returnToPlay
+        self.playState = PlayState.returnToPlay
       elif (MotionSkills.isPointInFrontOfRobot(self.robotLocation,self.ball.point, 0.5, 0.04 + abs(MAX_SPEED/4))): #This offset compensates for the momentum
         print("REALLY BEHIND BALL")
-        self.state = State.rushGoal# rush goal
+        self.playState = PlayState.rushGoal# rush goal
         self.stopRushingGoalTime = getTime() + int(2 * DIS_BEHIND_BALL/MAX_SPEED*100)
 
-    if self.state == State.rushGoal:
+    if self.playState == PlayState.rushGoal:
       print("RUSHING")
       #self.speed = RUSH_SPEED
       self.go_to_point(AWAY_GOAL.x, AWAY_GOAL.y, AWAY_GOAL)
       if getTime() >= self.stopRushingGoalTime:
         kick()
         print("KICKED")
-        self.state = State.check
+        self.playState = PlayState.check
 
-    if self.state == State.returnToPlay:
+    if self.playState == PlayState.returnToPlay:
       self.go_to_point(CENTER.x, CENTER.y, AWAY_GOAL)
       if abs(self.robotLocation.x) < .2 and abs(self.robotLocation.y) < .2:
-        self.state = State.check
+        self.playState = PlayState.check
 
     #check if ball is behind robot
-    if self.state == State.getBehindBall:
+    if self.playState == PlayState.getBehindBall:
       predBallLoc = self.ballPrediction(time.time() - self.lastTimeStamp)
       desiredPoint = MotionSkills.getPointBehindBallXY(predBallLoc.x, predBallLoc.y, home_goal=AWAY_GOAL)
       distFromPoint = distance(self.robotLocation, desiredPoint)
       if distFromPoint < 0.1:
-        self.state = State.rushGoal
+        self.playState = PlayState.rushGoal
         self.stopRushingGoalTime = getTime() + 50
         kick()
       elif self.ball.point.x > AWAY_GOAL:
@@ -227,8 +205,6 @@ class Vektory:
       self.defensiveStrats()
 
   def scoreGoal(self):
-    self.commandRoboclaws()
-
     #1. get behind ball
 
 
@@ -239,58 +215,47 @@ class Vektory:
     if self.gameState == GameState.play:
       self.jarjar_oneRobotStrategy()
     elif self.gameState == GameState.test:
-      #self.test()
       self.defensiveStrats()
       self.strategy = Strategy.DEFENSIVE
     elif self.gameState == GameState.stop:
       self.strategy = Strategy.NONE
-      if self.stopped == False:
-        self.sendCommand(0,0,0);
-        self.stopped = True;
+      self.sendCommand(0, 0, 0)
     elif self.gameState == GameState.center:
       self.strategy = Strategy.NONE
       if distance(self.robotLocation, Point(CENTER.x, CENTER.y)) > MOVEMENT_THRESHOLD:
         self.go_to_point(CENTER.x, CENTER.y, None)
-      elif self.stopped == False:
-        self.sendCommand(0,0,0);
-        self.stopped = True;
+      else:
+        self.sendCommand(0, 0, 0)
     elif self.gameState == GameState.startPosition:
       self.strategy = Strategy.NONE
       if distance(self.robotLocation, START_LOC) > MOVEMENT_THRESHOLD or abs(self.robotLocation.theta) > 0.1:
         self.go_to_point(START_LOC.x, START_LOC.y, AWAY_GOAL)
-      elif self.stopped == False:
-        self.sendCommand(0,0,0);
-        self.stopped = True;
+      else:
+        self.sendCommand(0, 0, 0)
     elif self.gameState == GameState.goToPoint:
       self.strategy = Strategy.NONE
       if distance(self.robotLocation, self.clickLocation) > MOVEMENT_THRESHOLD:
         self.go_to_point(self.clickLocation.x, self.clickLocation.y)
-      elif self.stopped == False:
+      else:
         self.sendCommand(0, 0, 0)
-        self.stopped = True
 
   def executeCommCenterCommand(self,req):
-    self.resetPIDState()
+    self.resetPIDValues()
     if req.comm == 1:
       self.gameState = GameState.stop
-      self.state = State.check
-      self.stopped = False
+      self.playState = PlayState.check
     elif req.comm == 2:
       self.gameState = GameState.play
     elif req.comm == 3:
       self.gameState = GameState.center
-      self.state = State.check
-      self.stopped = False
+      self.playState = PlayState.check
     elif req.comm == 4:
       self.gameState = GameState.startPosition
-      self.state = State.check
-      self.stopped = False
+      self.playState = PlayState.check
     elif req.comm == 5:
-      self.testState = TestState.check
       self.gameState = GameState.test
     elif req.comm == 6:
       self.gameState = GameState.goToPoint
-      self.stopped = False
       self.clickLocation = Point(pixelToMeter(req.x), pixelToMeter(req.y))
     return commcenterResponse()
 
@@ -349,7 +314,7 @@ class Vektory:
     ball_new_position_y = self.ball.point.y + self.currBallYVel*time_sec
     return Point(ball_new_position_x, ball_new_position_y)
 
-  def resetPIDState(self):
+  def resetPIDValues(self):
     for key in self.integrator:
       self.integrator[key] = 0
     for key in self.differentiator:

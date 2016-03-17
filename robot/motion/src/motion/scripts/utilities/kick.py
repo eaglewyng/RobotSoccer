@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import os
+
 def initkick():
-  os.system("echo 29 > /sys/class/gpio/export")
-  os.system("echo out > /sys/class/gpio/gpio29/direction")
-  
+  os.system("echo 30 > /sys/class/gpio/export")
+  os.system("echo out > /sys/class/gpio/gpio30/direction")
+
 def kick():
-  os.system("echo 1 > /sys/class/gpio/gpio29/value; sleep .1; echo 0 > /sys/class/gpio/gpio29/value")
+  os.system("echo 1 > /sys/class/gpio/gpio30/value; sleep .1; echo 0 > /sys/class/gpio/gpio30/value")
 
 if __name__ == '__main__':
+  initkick()
   kick()

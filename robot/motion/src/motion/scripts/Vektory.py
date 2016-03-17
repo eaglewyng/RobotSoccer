@@ -12,7 +12,7 @@ from gamepieces.HomeRobot import HomeRobot
 from gamepieces.HomeRobot import RobotCommand
 from gamepieces.Ball import *
 from param import *
-from utilities.kick import kick
+from utilities.kick import *
 from kalman_filter.Locations import *
 import sched
 import cPickle as pickle
@@ -203,6 +203,7 @@ class Vektory:
       if distFromPoint < 0.1:
         self.state = State.rushGoal
         self.stopRushingGoalTime = getTime() + 50
+        kick()
       elif self.ball.point.x > AWAY_GOAL:
         #try go to point
         self.go_to_point(desiredPoint.x, desiredPoint.y)

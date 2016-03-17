@@ -485,6 +485,7 @@ class Vektory:
 
 
   def executeCommCenterCommand(self,req):
+    self.resetPIDState()
     if req.comm == 1:
       self.gameState = GameState.stop
       self.state = State.check
@@ -564,6 +565,12 @@ class Vektory:
     ball_new_position_x = self.ball.point.x + self.currBallXVel*time_sec
     ball_new_position_y = self.ball.point.y + self.currBallYVel*time_sec
     return (ball_new_position_x, ball_new_position_y)
+
+  def resetPIDState(self):
+    for key in self.integrator:
+      self.integrator[key] = 0
+    for key in self.differentiator:
+      self.integrator[key] = 0
 
   def pidloop(self, dest_loc, cur_loc, var):
     def getConstants(var):

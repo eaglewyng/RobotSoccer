@@ -294,8 +294,6 @@ class Vektory:
     home1_angle = math.atan2(home1_vector_y, home1_vector_x)
     home1_velocity = home1_mag/sample_period
 
-    # print(home1_velocity)
-
     self.currHome1XVel = home1_vector_x / sample_period
     self.currHome1YVel = home1_vector_y / sample_period
 

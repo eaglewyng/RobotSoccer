@@ -85,6 +85,12 @@ class Vektory:
     else:
       return self.home2Location
 
+  def getTeammateLocation(self):
+    if self.robotAssignment == 2:
+      return self.home2Location
+    else:
+      return self.home1location
+
   def rotateAroundBallToAngle(self,targetAngle):
     #lookAtPoint = self.ballLocation
     delta = MotionSkills.deltaBetweenAngles(self.home1Location.theta, targetAngle)
@@ -145,7 +151,11 @@ class Vektory:
   def defensiveStrats(self):
     predBall = self.ballPrediction(1.5)
     lookAtPoint = self.ballLocation
-    DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
+    if self.robotAssignment == 1:
+      DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
+    else:
+      DEFENSIVE_X_COORD = HOME_GOAL.x - 0.8
+
     DEFENSIVE_Y_COORD = predBall.y
 
     # don't leave the goalie box
@@ -211,6 +221,14 @@ class Vektory:
       self.strategy = Strategy.DEFENSIVE
       self.defensiveStrats()
 
+  def jarjar_robot1Strategy(self):
+    self.play()
+    pass
+
+  def jarjar_robot2Strategy(self):
+    self.defensiveStrats()
+    pass
+
   def scoreGoal(self):
     pass
     #1. get behind ball
@@ -218,34 +236,75 @@ class Vektory:
 
     #2. get ball into goal
 
+  def reassignRobots(self):
+    if self.robotAssignment == 1:
+      if self.distance(self.home2location, self.ballLocation) < .1:
+        self.robotAssignment = 2
+    else:
+      if self.distance(self.home2location, self.ballLocation) < .1
+        self.robotAssignment = 1
+
+    pass
+
   def executionLoop(self, scheduler):
     scheduler.enter(0.1, 1, self.executionLoop,(scheduler,))
-    if self.gameState == GameState.PLAY:
-      self.jarjar_oneRobotStrategy()
-    elif self.gameState == GameState.TEST:
-      self.defensiveStrats()
-      self.strategy = Strategy.DEFENSIVE
-    elif self.gameState == GameState.STOP:
-      self.strategy = Strategy.NONE
-      self.sendCommand(0, 0, 0)
-    elif self.gameState == GameState.CENTER:
-      self.strategy = Strategy.NONE
-      if distance(self.home1Location, Point(CENTER.x, CENTER.y)) > MOVEMENT_THRESHOLD:
-        self.go_to_point(CENTER.x, CENTER.y, None)
-      else:
+    #we are the first robot
+    self.reassignRobots()
+    if self.robotAssignment == 1:
+      if self.gameState == GameState.PLAY:
+        self.jarjar_robot1Strategy()
+      elif self.gameState == GameState.TEST:
+        self.defensiveStrats()
+        self.strategy = Strategy.DEFENSIVE
+      elif self.gameState == GameState.STOP:
+        self.strategy = Strategy.NONE
         self.sendCommand(0, 0, 0)
-    elif self.gameState == GameState.START_POSITION:
-      self.strategy = Strategy.NONE
-      if distance(self.home1Location, START_LOC) > MOVEMENT_THRESHOLD or abs(self.home1Location.theta) > 0.1:
-        self.go_to_point(START_LOC.x, START_LOC.y, AWAY_GOAL)
+      elif self.gameState == GameState.CENTER:
+        self.strategy = Strategy.NONE
+        if distance(self.home1Location, Point(CENTER.x, CENTER.y)) > MOVEMENT_THRESHOLD:
+          self.go_to_point(CENTER.x, CENTER.y, None)
+        else:
+          self.sendCommand(0, 0, 0)
+      elif self.gameState == GameState.START_POSITION:
+        self.strategy = Strategy.NONE
+        if distance(self.home1Location, START_LOC) > MOVEMENT_THRESHOLD or abs(self.home1Location.theta) > 0.1:
+          self.go_to_point(START_LOC.x, START_LOC.y, AWAY_GOAL)
+        else:
+          self.sendCommand(0, 0, 0)
+      elif self.gameState == GameState.GOTOPOINT:
+        self.strategy = Strategy.NONE
+        if distance(self.home1Location, self.clickLocation) > MOVEMENT_THRESHOLD:
+          self.go_to_point(self.clickLocation.x, self.clickLocation.y)
+        else:
+          self.sendCommand(0, 0, 0)
+      #we are the second robot
       else:
-        self.sendCommand(0, 0, 0)
-    elif self.gameState == GameState.GOTOPOINT:
-      self.strategy = Strategy.NONE
-      if distance(self.home1Location, self.clickLocation) > MOVEMENT_THRESHOLD:
-        self.go_to_point(self.clickLocation.x, self.clickLocation.y)
-      else:
-        self.sendCommand(0, 0, 0)
+        if self.gameState == GameState.PLAY:
+          self.jarjar_robot2Strategy()
+        elif self.gameState == GameState.TEST:
+          self.defensiveStrats()
+          self.strategy = Strategy.DEFENSIVE
+        elif self.gameState == GameState.STOP:
+          self.strategy = Strategy.NONE
+          self.sendCommand(0, 0, 0)
+        elif self.gameState == GameState.CENTER:
+          self.strategy = Strategy.NONE
+          if distance(self.home1Location, Point(CENTER.x, CENTER.y)) > MOVEMENT_THRESHOLD:
+            self.go_to_point(CENTER.x, CENTER.y, None)
+          else:
+            self.sendCommand(0, 0, 0)
+        elif self.gameState == GameState.START_POSITION:
+          self.strategy = Strategy.NONE
+          if distance(self.home1Location, START_LOC) > MOVEMENT_THRESHOLD or abs(self.home1Location.theta) > 0.1:
+            self.go_to_point(START_LOC.x, START_LOC.y, AWAY_GOAL)
+          else:
+            self.sendCommand(0, 0, 0)
+        elif self.gameState == GameState.GOTOPOINT:
+          self.strategy = Strategy.NONE
+          if distance(self.home1Location, self.clickLocation) > MOVEMENT_THRESHOLD:
+            self.go_to_point(self.clickLocation.x, self.clickLocation.y)
+          else:
+            self.sendCommand(0, 0, 0)  
 
   def executeCommCenterCommand(self,req):
     self.resetPIDValues()

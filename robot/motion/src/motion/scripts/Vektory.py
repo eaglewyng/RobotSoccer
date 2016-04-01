@@ -17,6 +17,7 @@ from kalman_filter.Locations import *
 import sched
 import cPickle as pickle
 from velocity import *
+import os
 
 from enum import Enum
 class GameState(Enum):
@@ -46,11 +47,17 @@ class Vektory:
     self.lastBallLocation = Point()
     self.home1Location = RobotLocation()
     self.lastHome1Location = RobotLocation()
+    self.awayTeam1Location = RobotLocation()
+    self.awayTeam2Location = RobotLocation()
     self.clickLocation = Point()
     self.distanceToBall = 0
     self.playState = PlayState.CHECK
     self.gameState = GameState.STOP
+    self.oldGameState = GameState.STOP
     self.stopRushingGoalTime = 0
+
+    #Set this to 1 if you want the 2 robot strategy
+    self.twoRobotStrategyEnabled = 0
 
     #figure out which robot I am
     self.robotAssignment = rospy.get_param('robot', 1)
@@ -62,12 +69,14 @@ class Vektory:
     self.ballVelocity = Velocity()
     self.home1Velocity = Velocity()
 
+
+
     initkick()
 
     self.integrator = {'x': 0, 'y': 0, 'theta': 0}
     self.differentiator = {'x': 0, 'y': 0, 'theta': 0}
     self.error_d1 = {'x': 0, 'y': 0, 'theta': 0}
-
+    self.desired_old = {'x': 0, 'y': 0, 'theta': 0}
     self.strategy = Strategy.DEFENSIVE
 
   def sendCommand(self, vel_x, vel_y, omega, theta = 0):
@@ -140,6 +149,8 @@ class Vektory:
         self.locations.setLocationsFromMeasurement(data)
         self.home1Location = self.locations.home1
         self.home2Location = self.locations.home2
+        self.awayTeam1Location = self.locations.away1
+        self.awayTeam2Location = self.locations.away2
         self.ballLocation.x = self.locations.ball.x
         self.ballLocation.y = self.locations.ball.y
         self.distanceToBall = distance(self.getMyLocation(), self.locations.ball)
@@ -151,10 +162,13 @@ class Vektory:
   def defensiveStrats(self):
     predBall = self.ballPrediction(1.5)
     lookAtPoint = self.ballLocation
-    if self.robotAssignment == 1:
-      DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
+    if self.twoRobotStrategyEnabled == 1:
+      if self.robotAssignment == 1:
+        DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
+      else:
+        DEFENSIVE_X_COORD = HOME_GOAL.x - 0.8
     else:
-      DEFENSIVE_X_COORD = HOME_GOAL.x - 0.8
+      DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
 
     DEFENSIVE_Y_COORD = predBall.y
 
@@ -169,57 +183,119 @@ class Vektory:
       self.go_to_point(DEFENSIVE_X_COORD, HOME_GOAL.y, lookAtPoint)
 
   def play(self):
-    #print (self.home1Location.x, self.home1Location.y)
-    #self.setSpeed()
-    #check if robot is ready to rush goal
     if self.playState == PlayState.CHECK:
-      self.playState = PlayState.GET_BEHIND_BALL
-      if self.home1Location.x > pixelToMeter(345):
-        self.playState = PlayState.RETURN_TO_PLAY
-      elif (MotionSkills.isPointInFrontOfRobot(self.home1Location, self.ballLocation, 0.5, 0.04 + abs(MAX_SPEED/4))): #This offset compensates for the momentum
-        print("REALLY BEHIND BALL")
-        self.playState = PlayState.RUSHGOAL# rush goal
-        self.stopRushingGoalTime = getTime() + int(2 * DIS_BEHIND_BALL/MAX_SPEED*100)
+      self.checkState_default()
 
     if self.playState == PlayState.RUSHGOAL:
-      print("RUSHING")
-      #self.speed = RUSH_SPEED
-      self.go_to_point(AWAY_GOAL.x, AWAY_GOAL.y, AWAY_GOAL)
-      if getTime() >= self.stopRushingGoalTime:
-        kick()
-        print("KICKED")
-        self.playState = PlayState.CHECK
+      self.rushGoal_default()
 
     if self.playState == PlayState.RETURN_TO_PLAY:
-      self.go_to_point(CENTER.x, CENTER.y, AWAY_GOAL)
-      if abs(self.home1Location.x) < .2 and abs(self.home1Location.y) < .2:
-        self.playState = PlayState.CHECK
+      self.returnToPlay_default()
 
     #check if ball is behind robot
     if self.playState == PlayState.GET_BEHIND_BALL:
-      predBallLoc = self.ballPrediction(time.time() - self.lastTimeStamp)
-      desiredPoint = MotionSkills.getPointBehindBallXY(predBallLoc.x, predBallLoc.y, home_goal=AWAY_GOAL)
-      distFromPoint = distance(self.home1Location, desiredPoint)
-      if distFromPoint < 0.1:
-        self.playState = PlayState.RUSHGOAL
-        self.stopRushingGoalTime = getTime() + 50
-        kick()
-      elif self.ballLocation.x > AWAY_GOAL:
-        #try go to point
-        self.go_to_point(desiredPoint.x, desiredPoint.y)
-        #self.go_direction(desiredPoint)
+      self.getBehindBall_default()
+
+  def returnToPlay_default(self):
+    self.go_to_point(CENTER.x, CENTER.y, AWAY_GOAL)
+    if abs(self.home1Location.x) < .2 and abs(self.home1Location.y) < .2:
+      self.playState = PlayState.CHECK
+
+  def checkState_default(self):
+    self.playState = PlayState.GET_BEHIND_BALL
+    if self.home1Location.x > pixelToMeter(345):
+      self.playState = PlayState.RETURN_TO_PLAY
+    elif (MotionSkills.isPointInFrontOfRobot(self.home1Location, self.ballLocation, 0.5, 0.04 + abs(MAX_SPEED/4))): #This offset compensates for the momentum
+      print("REALLY BEHIND BALL")
+      self.playState = PlayState.RUSHGOAL# rush goal
+
+
+  def rushGoal_default(self):
+    print("RUSHING")
+    #self.speed = RUSH_SPEED
+    self.go_to_point(AWAY_GOAL.x - .2, AWAY_GOAL.y, Point(AWAY_GOAL.x - .2, AWAY_GOAL.y))
+    self.playState = PlayState.CHECK
+    if getTime() >= self.stopRushingGoalTime or self.getMyLocation().x < (AWAY_GOAL.x + 1) :
+      kick()
+      print("KICKED")
+      self.stopRushingGoalTime = getTime() + int(2 * DIS_BEHIND_BALL/MAX_SPEED*100)
+
+
+  def getBehindBall_default(self):
+    predBallLoc = self.ballPrediction(time.time() - self.lastTimeStamp)
+    desiredPoint = MotionSkills.getPointBehindBallXY(predBallLoc.x, predBallLoc.y, home_goal=Point(AWAY_GOAL.x - 0.2, AWAY_GOAL.y))
+
+    distFromPoint = distance(self.home1Location, desiredPoint)
+
+    desired_theta = math.atan2(AWAY_GOAL.y-self.getMyLocation().y, AWAY_GOAL.x-0.2-self.getMyLocation().x)
+    desired_theta = desired_theta % (2*math.pi)
+    error = desired_theta - self.getMyLocation().theta
+    if abs(error) > math.pi:
+      if error > 0:
+        error = error - 2*math.pi
+      else:
+        error = error + 2*math.pi
+
+#    if (distFromPoint < 0.05 or distance(self.ballLocation, self.home1Location) < 0.1) and (abs(error) < math.pi/8) and (self.home1Location.x > self.ballLocation.x):
+    if (distFromPoint < 0.05) and (abs(error) < math.pi/8) and (self.home1Location.x > self.ballLocation.x):
+      print("CHANGING TO RUSSIAN")
+      self.playState = PlayState.RUSHGOAL
+      self.stopRushingGoalTime = getTime() + 150
+    elif self.ballLocation.x > AWAY_GOAL and (self.home1Location.x < self.ballLocation.x):
+      if self.home1Location.y < 0:
+        print("IN FRONT OF BALL")
+        self.go_to_point(desiredPoint.x, desiredPoint.y+.2)
+      else:
+        print("IN FRONT OF BALL")
+        self.go_to_point(desiredPoint.x, desiredPoint.y-.2)
+    elif self.ballLocation.x > AWAY_GOAL:
+      print("GOING TO ACTUAL PT BEHIND BALL {}, {}".format(meterToPixel(desiredPoint.x), meterToPixel(desiredPoint.y)))
+      #try go to point
+      self.go_to_point(desiredPoint.x, desiredPoint.y, lookAtPoint=AWAY_GOAL)
 
   def jarjar_oneRobotStrategy(self):
     #if (robot is on the bottom quarter of our field)
     # goFullDefensive()
     #if (robot is anywhere else)
     # goFullOffensive()
-    if self.ballLocation.x < WIDTH_FIELD/4:
-      self.strategy = Strategy.OFFENSIVE
-      self.play()
-    else:
+    if (abs(self.ballLocation.x)  > HOME_GOAL.x + .05) and (abs(self.ballLocation.y) < pixelToMeter(67)):
+      self.gameState = GameState.START_POSITION
+    elif self.ballLocation.x > WIDTH_FIELD/4 and (self.awayTeam1Location.x > 0 or self.awayTeam2Location.x > 0):
       self.strategy = Strategy.DEFENSIVE
       self.defensiveStrats()
+    else:
+      self.strategy = Strategy.OFFENSIVE
+      self.play()
+
+  def jarjar_baeMAXStrategy(self):
+    pass
+
+  def play_baeMAX(self):
+    if self.playState == PlayState.CHECK:
+      self.checkState_default()
+
+    if self.playState == PlayState.RUSHGOAL:
+      self.rushGoal_default()
+
+    if self.playState == PlayState.RETURN_TO_PLAY:
+      self.returnToPlay_default()
+
+    #check if ball is behind robot
+    if self.playState == PlayState.GET_BEHIND_BALL:
+      self.getBehindBall_baeMAX()
+
+  def getBehindBall_baeMAX(self):
+    predBallLoc = self.ballPrediction(time.time() - self.lastTimeStamp)
+    desiredPoint = MotionSkills.getPointBehindBallXYDistance(predBallLoc.x, predBallLoc.y, 1, home_goal=AWAY_GOAL)
+    distFromPoint = distance(self.home1Location, desiredPoint)
+    if distFromPoint < 0.05:
+      self.playState = PlayState.RUSHGOAL
+      self.stopRushingGoalTime = getTime() + 50
+      kick()
+    elif self.ballLocation.x > AWAY_GOAL:
+      #try go to point
+      self.go_to_point(desiredPoint.x, desiredPoint.y)
+      #self.go_direction(desiredPoint)
 
   def jarjar_robot1Strategy(self):
     self.play()
@@ -237,14 +313,15 @@ class Vektory:
     #2. get ball into goal
 
   def reassignRobots(self):
-    if self.robotAssignment == 1:
-      if self.distance(self.home2location, self.ballLocation) < .1:
-        self.robotAssignment = 2
+    if self.twoRobotStrategyEnabled == 1:
+      if self.robotAssignment == 1:
+        if self.distance(self.home2location, self.ballLocation) < .1:
+          self.robotAssignment = 2
+      else:
+        if self.distance(self.home2location, self.ballLocation) < .1:
+          self.robotAssignment = 1
     else:
-      if self.distance(self.home2location, self.ballLocation) < .1
-        self.robotAssignment = 1
-
-    pass
+      self.robotAssignment = 1
 
   def executionLoop(self, scheduler):
     scheduler.enter(0.1, 1, self.executionLoop,(scheduler,))
@@ -252,7 +329,10 @@ class Vektory:
     self.reassignRobots()
     if self.robotAssignment == 1:
       if self.gameState == GameState.PLAY:
-        self.jarjar_robot1Strategy()
+        if self.twoRobotStrategyEnabled == 1:
+          self.jarjar_robot1Strategy()
+        else:
+          self.jarjar_oneRobotStrategy()
       elif self.gameState == GameState.TEST:
         self.defensiveStrats()
         self.strategy = Strategy.DEFENSIVE
@@ -280,7 +360,10 @@ class Vektory:
       #we are the second robot
       else:
         if self.gameState == GameState.PLAY:
-          self.jarjar_robot2Strategy()
+          if self.twoRobotStrategyEnabled == 1:
+            self.jarjar_robot2Strategy()
+          else:
+            self.jarjar_oneRobotStrategy()
         elif self.gameState == GameState.TEST:
           self.defensiveStrats()
           self.strategy = Strategy.DEFENSIVE
@@ -304,7 +387,20 @@ class Vektory:
           if distance(self.home1Location, self.clickLocation) > MOVEMENT_THRESHOLD:
             self.go_to_point(self.clickLocation.x, self.clickLocation.y)
           else:
-            self.sendCommand(0, 0, 0)  
+            self.sendCommand(0, 0, 0)
+
+  def watchdog(self, scheduler):
+    # print("WOOF {}".format(time.time()))
+    if time.time() > self.lastTimeStamp + 0.5:
+      print("WIFI TIMED OUT")
+      self.sendCommand(0, 0, 0)
+      self.oldGameState = self.gameState
+      self.gameState = GameState.STOP
+      time.sleep(1)
+      self.gameState = self.oldGameState
+      scheduler.enter(0.25, 2, self.watchdog, (scheduler,))
+    else:
+      scheduler.enter(0.25, 2, self.watchdog, (scheduler,))
 
   def executeCommCenterCommand(self,req):
     self.resetPIDValues()
@@ -339,6 +435,7 @@ class Vektory:
     rospy.Subscriber("locTopic", locations, self.updateLocations)
     print "Subscribed to locTopic!"
     s.enter(0, 1, self.executionLoop, (s,))
+    s.enter(0.5, 2, self.watchdog, (s,))
     s.run()
 
   def updatePredictions(self):
@@ -387,10 +484,15 @@ class Vektory:
 
   def pidloop(self, dest_loc, cur_loc, var):
     def getConstants(var):
-      if var == 'x' or var == 'y':
-        return (0.01, 0.05, 1.1, 0.0, 2.0, MAX_SPEED)
+      if var == 'x':
+        return (0.1, 0.05, 1.1, 0, 0.1, MAX_SPEED)
+        # return (0.01, 0.05, 2.3, 0.12, 3.7, MAX_SPEED) #.12, 3.7
+      elif var == 'y':
+        return (0.1, 0.05, 1.1, 0, 0.1, MAX_SPEED)
+        # return (0.01, 0.05, 2.3, 0.12, 3.89, MAX_SPEED) #.12, 3.89
       elif var == 'theta':
-        return (0.01, 0.05, 1.7, 0.0, .7, MAX_OMEGA)
+        return (0.1, 0.05, 1, 0, 0.1, MAX_OMEGA)
+        # return (0.01, 0.05, 1.7, 0, .7, MAX_OMEGA) #.7
     def sat(x, limit):
       out = max(x, -limit)
       out = min(out, limit)
@@ -413,8 +515,12 @@ class Vektory:
       # negate error because positive rotation of our robot is backwards
       error = -error
 
-    # print("PID cur = {}, dest = {}, error = {}".format(cur_loc, dest_loc, error))
+    #print("PID cur = {}, dest = {}, error = {}".format(cur_loc, dest_loc, error))
     #update integrator
+
+    if abs(self.desired_old[var] - dest_loc) > .07:
+      self.integrator[var] = 0
+
     self.integrator[var] = self.integrator[var] + (Ts/2) * (error + self.error_d1[var])
 
     #update differentiator
@@ -425,22 +531,62 @@ class Vektory:
 
     if ki != 0:
       velocity_unsat = kp*error + ki*self.integrator[var] + kd*self.differentiator[var]
-      self.integrator[var] = self.integrator[var] + Ts/ki *(velocity - velocity_unsat)
+      #self.integrator[var] = self.integrator[var] + Ts/ki *(velocity - velocity_unsat)
+
+    #if (var == 'x' or var == 'y') and abs(error) < 0.1:
+    #  if error < 0:
+    #    velocity = -.5
+    #  else:
+    #    velocity = .5
+
+
+    f = open('/root/w.txt', 'a')
+    if var == 'x':
+      f = open('/root/x.txt', 'a')
+    elif var == 'y':
+      f = open('/root/y.txt', 'a')
+    f.write("{},{}\n".format(cur_loc, dest_loc))
+    f.close()
+
+    #print("Error d1 = {}".format(self.error_d1[var]))
+
+    self.error_d1[var] = error
+
 
     #u is the output velocity in a specified direction (x or y)
-    # print("PID", var, error, velocity)
+    print("PID", var, error, velocity)
 
-    MIN_SPEED_XY = 0.7
-    MIN_SPEED_THETA = 4
-    THRESHOLD = 0.2
+    MIN_SPEED_XY = 0.3
+    MIN_SPEED_THETA = 1
+    THRESHOLD_XY = 0.1
+    THRESHOLD_THETA = 0.5
+    self.desired_old[var] = dest_loc
 
     if math.sqrt(self.home1Velocity.x**2 + self.home1Velocity.y**2) < 0.2:
       if var == 'x' or var == 'y':
-        # print("increase {}".format(var))
-        if abs(velocity) > THRESHOLD:
-          velocity = MIN_SPEED_XY if velocity > 0 else -MIN_SPEED_XY
-      # elif var == 'theta':
-      #   velocity = velocity + (MIN_SPEED_THETA if velocity > 0 else -MIN_SPEED_THETA)
+        if False and abs(error) < THRESHOLD_XY:
+          velocity = 0
+        else:
+          if velocity > 0:
+            velocity += MIN_SPEED_XY #= max(MIN_SPEED_XY, velocity)
+          else:
+            velocity -= MIN_SPEED_XY #= min(-MIN_SPEED_XY, velocity)
+      elif var == 'theta':
+        if False and abs(error) < THRESHOLD_THETA:
+          velocity = 0
+        else:
+          if velocity > 0:
+            velocity += MIN_SPEED_THETA #= max(MIN_SPEED_THETA, velocity)
+          else:
+            velocity -= MIN_SPEED_THETA #= min(-MIN_SPEED_THETA, velocity)
+
+    # if math.sqrt(self.home1Velocity.x**2 + self.home1Velocity.y**2) < 0.2:
+    #   if var == 'x' or var == 'y':
+    #     # print("increase {}".format(var))
+    #     if abs(velocity) > THRESHOLD:
+    #       velocity = MIN_SPEED_XY if velocity > 0 else -MIN_SPEED_XY
+    #   # elif var == 'theta':
+    #   #   velocity = velocity + (MIN_SPEED_THETA if velocity > 0 else -MIN_SPEED_THETA)
     return velocity
 
 def distance(cur_loc, dest_loc):
@@ -448,4 +594,10 @@ def distance(cur_loc, dest_loc):
 
 if __name__ == '__main__':
   winner = Vektory()
+  try:
+    os.remove('/root/x.txt')
+    os.remove('/root/y.txt')
+    os.remove('/root/w.txt')
+  except:
+    pass
   winner.go()

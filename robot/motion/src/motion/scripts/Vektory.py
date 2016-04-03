@@ -182,6 +182,35 @@ class Vektory:
     else:
       self.go_to_point(DEFENSIVE_X_COORD, HOME_GOAL.y, lookAtPoint)
 
+  def defensiveStrats_augmented(self):
+  	
+
+  	if distance(self.getMyLocation, ballLocation) < .1:
+  		self.playState = PlayState.RUSHGOAL
+  		self.play()
+  	else:
+	  	predBall = self.ballPrediction(1.5)
+	    lookAtPoint = self.ballLocation
+	    if self.twoRobotStrategyEnabled == 1:
+	      if self.robotAssignment == 1:
+	        DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
+	      else:
+	        DEFENSIVE_X_COORD = HOME_GOAL.x - 0.8
+	    else:
+	      DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
+
+	    DEFENSIVE_Y_COORD = predBall.y
+
+	    # don't leave the goalie box
+	    DEFENSIVE_Y_COORD = min(DEFENSIVE_Y_COORD, HEIGHT_FIELD_METER/4)
+	    DEFENSIVE_Y_COORD = max(DEFENSIVE_Y_COORD, -HEIGHT_FIELD_METER/4)
+
+	    # only guard if the ball isn't past the robot
+	    if self.ballLocation.x < self.home1Location.x:
+	      self.go_to_point(DEFENSIVE_X_COORD, DEFENSIVE_Y_COORD, lookAtPoint)
+	    else:
+	      self.go_to_point(DEFENSIVE_X_COORD, HOME_GOAL.y, lookAtPoint)
+  	
   def play(self):
     if self.playState == PlayState.CHECK:
       self.checkState_default()

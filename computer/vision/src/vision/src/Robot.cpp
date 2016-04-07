@@ -111,7 +111,7 @@ void Robot::calibrateRobot(VideoCapture capture) {
       imshow(windowName,cameraFeed);
 
       char pressedKey;
-      pressedKey = cvWaitKey(5); // Wait for user to press 'Enter'
+      pressedKey = cvWaitKey(1); // Wait for user to press 'Enter'
       if (pressedKey == '\n') {
 
           Scalar hsv_min(h_min, s_min, v_min);

@@ -62,7 +62,7 @@ int field_center_y_max = FRAME_HEIGHT;
 const int MAX_NUM_OBJECTS=50;
 
 //minimum and maximum object area
-const int MIN_OBJECT_AREA = 5*5;
+const int MIN_OBJECT_AREA = 10*10;
 const int MAX_OBJECT_AREA = FRAME_HEIGHT*FRAME_WIDTH/1.5;
 
 //names that will appear at the top of each window
@@ -133,6 +133,13 @@ ros::NodeHandle* nodeHandle;
 
 //if we would like to calibrate our filter values, set to true.
 bool calibrationMode = true;
+
+void restoreFieldValues() {
+  field_width = (TEAM == HOME) ? home_field_width : away_field_width;
+  field_height = (TEAM == HOME) ? home_field_height : away_field_height;
+  field_center_x = (TEAM == HOME) ? home_field_center_x : away_field_center_x;
+  field_center_y = (TEAM == HOME) ? home_field_center_y : away_field_center_y;
+}
 
 // Saves all of the pertinent calibration settings to human-readable file
 void saveSettings() {
@@ -332,13 +339,6 @@ void restoreSettings() {
   printf("Settings Restored!\n");
 }
 
-void restoreFieldValues() {
-  field_width = (TEAM == HOME) ? home_field_width : away_field_width;
-  field_height = (TEAM == HOME) ? home_field_height : away_field_height;
-  field_center_x = (TEAM == HOME) ? home_field_center_x : away_field_center_x;
-  field_center_y = (TEAM == HOME) ? home_field_center_y : away_field_center_y;
-}
-
 //-----------------------------------------------------------------------------
 // Utility Functions Shared by Classes
 //-----------------------------------------------------------------------------
@@ -497,7 +497,7 @@ void calibrateField() {
     imshow(windowName,cameraFeed);
 
     char pressedKey;
-    pressedKey = cvWaitKey(5); // Wait for user to press 'Enter'
+    pressedKey = cvWaitKey(1); // Wait for user to press 'Enter'
     if (pressedKey == '\n') {
       field_center_y = getTrackbarPos( "Field Center Y", trackbarWindowName);
       field_center_x = getTrackbarPos( "Field Center X", trackbarWindowName);
@@ -732,6 +732,7 @@ void changeCamera(const std_msgs::Int32 message) {
   if (calibrationMode == true) {
     calibrateField();
   }
+  restoreSettings();
   restoreFieldValues();
 }
 
@@ -757,7 +758,9 @@ robot_soccer::locations lowPassFilterLocations(robot_soccer::locations measuredL
     oldLocations.away2_theta = 0;
   }
 
-  unsigned int alpha = 0.5;
+  double cutoff_frequency = 0.0;//360.0; // roughly 1 rev/s
+  double Ts = 1.0/40.0; // sample at 40 times a second
+  double alpha = 2*3.14*Ts*cutoff_frequency/(2*3.14*Ts*cutoff_frequency + 1);
 
   // filter measured values
   processedLocations.ball_x      = alpha*oldLocations.ball_x      + (1-alpha)*measuredLocations.ball_x;
@@ -776,6 +779,8 @@ robot_soccer::locations lowPassFilterLocations(robot_soccer::locations measuredL
   processedLocations.away2_theta = alpha*oldLocations.away2_theta + (1-alpha)*measuredLocations.away2_theta;
 
   processedLocations.header.stamp = measuredLocations.header.stamp;
+
+  // printf("old = %d, measured = %d, processed = %d\n", oldLocations.home1_theta, measuredLocations.home1_theta, processedLocations.home1_theta);
 
   // update old values
   oldLocations.ball_x      = processedLocations.ball_x;

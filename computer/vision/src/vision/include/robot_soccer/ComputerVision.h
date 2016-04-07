@@ -86,7 +86,8 @@ extern int field_center_y_max;
 extern const int MAX_NUM_OBJECTS;
 
 //minimum and maximum object area
-extern const int MIN_OBJECT_AREA;
+extern const int MIN_ROBOT_AREA;
+extern const int MIN_BALL_AREA;
 extern const int MAX_OBJECT_AREA;
 
 //names that will appear at the top of each window

@@ -145,7 +145,7 @@ void Robot::calibrateRobot(VideoCapture capture) {
 
 struct tooSmall: public std::unary_function<const std::vector<cv::Point_<int> >, bool> {
     bool operator()(const std::vector<cv::Point_<int> > contour) const {
-        return contourArea(contour) <= MIN_OBJECT_AREA;
+        return contourArea(contour) <= MIN_ROBOT_AREA;
     }
 };
 

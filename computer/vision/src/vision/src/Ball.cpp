@@ -156,7 +156,7 @@ void Ball::trackFilteredBall(Mat threshold, Mat HSV, Mat &cameraFeed) {
       //if the area is the same as the 3/2 of the image size, probably just a bad filter
       //we only want the object with the largest area so we safe a reference area each
       //iteration and compare it to the area in the next iteration.
-      if(largest_area > MIN_OBJECT_AREA) {
+      if(largest_area > MIN_BALL_AREA) {
         Point fieldPosition = convertCoordinates(Point(moment.m10/moment.m00,
                                                        moment.m01/moment.m00));
 

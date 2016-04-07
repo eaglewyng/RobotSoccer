@@ -62,7 +62,8 @@ int field_center_y_max = FRAME_HEIGHT;
 const int MAX_NUM_OBJECTS=50;
 
 //minimum and maximum object area
-const int MIN_OBJECT_AREA = 10*10;
+const int MIN_ROBOT_AREA = 10*10;
+const int MIN_BALL_AREA = 5*5;
 const int MAX_OBJECT_AREA = FRAME_HEIGHT*FRAME_WIDTH/1.5;
 
 //names that will appear at the top of each window

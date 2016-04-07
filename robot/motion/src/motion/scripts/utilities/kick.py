@@ -7,7 +7,7 @@ def initkick():
   os.system("echo 0 > /sys/class/gpio/gpio30/value")
 
 def kick():
-  os.system("echo 1 > /sys/class/gpio/gpio30/value; sleep .1; echo 0 > /sys/class/gpio/gpio30/value")
+  os.system("sleep 0.2; echo 1 > /sys/class/gpio/gpio30/value; sleep .1; echo 0 > /sys/class/gpio/gpio30/value")
 
 if __name__ == '__main__':
   initkick()

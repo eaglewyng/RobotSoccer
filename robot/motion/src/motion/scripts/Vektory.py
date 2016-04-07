@@ -65,7 +65,8 @@ class Vektory:
       print("Invalid robot assignemnt! Assigning 1")
       self.robotAssignment = 1
 
-    self.lastTimeStamp = -1
+    self.lastVisionUpdatedTimeStamp = -1
+    self.lastKickedTimeStamp = -1
     self.ballVelocity = Velocity()
     self.home1Velocity = Velocity()
 
@@ -180,14 +181,17 @@ class Vektory:
     if self.ballLocation.x < self.home1Location.x:
       self.go_to_point(DEFENSIVE_X_COORD, DEFENSIVE_Y_COORD, lookAtPoint)
     else:
-      self.go_to_point(DEFENSIVE_X_COORD, HOME_GOAL.y, lookAtPoint)
+      if self.ballLocation.y < 0:
+        self.go_to_point(DEFENSIVE_X_COORD, predBall.y + .2, lookAtPoint)
+      else:
+        self.go_to_point(DEFENSIVE_X_COORD, predBall.y - .2, lookAtPoint)
 
   def defensiveStrats_augmented(self):
     print("theta = {}, ball vel = {}".format(self.getMyLocation().theta, self.ballVelocity.magnitude()))
     if ((distance(self.getMyLocation(), self.ballLocation) < .1 or self.ballVelocity.magnitude() < .2)
        and self.getMyLocation().x > self.ballLocation.x
        and (self.getMyLocation().theta > math.pi/2 and self.getMyLocation().theta < 3*math.pi / 2)):
-
+      # kick() # xq no lol
       self.getBehindBall_default()
     else:
       print("\nDEFEND AGAIN")
@@ -199,7 +203,7 @@ class Vektory:
         else:
           DEFENSIVE_X_COORD = HOME_GOAL.x - 0.8
       else:
-        DEFENSIVE_X_COORD = HOME_GOAL.x - 0.3
+        DEFENSIVE_X_COORD = max(self.ballLocation.x, HOME_GOAL.x - 0.3)
 
       DEFENSIVE_Y_COORD = predBall.y
 
@@ -211,7 +215,8 @@ class Vektory:
       if self.ballLocation.x < self.home1Location.x:
         self.go_to_point(DEFENSIVE_X_COORD, DEFENSIVE_Y_COORD, lookAtPoint)
       else:
-        self.go_to_point(DEFENSIVE_X_COORD, HOME_GOAL.y, lookAtPoint)
+        offset = 0.2 if self.getMyLocation().y < 0 else -0.2
+        self.go_to_point(DEFENSIVE_X_COORD, predBall.y + offset)
 
   def play(self):
     if self.playState == PlayState.CHECK:
@@ -245,41 +250,40 @@ class Vektory:
     print("RUSHING")
     #self.speed = RUSH_SPEED
     self.go_to_point(AWAY_GOAL.x - .2, AWAY_GOAL.y, Point(AWAY_GOAL.x - .2, AWAY_GOAL.y))
-    self.playState = PlayState.CHECK
-    if getTime() >= self.stopRushingGoalTime or self.getMyLocation().x < (AWAY_GOAL.x + 1) :
+    self.playState = PlayState.GET_BEHIND_BALL
+    print("my pos = {}, rush = {}".format(self.getMyLocation().x, AWAY_GOAL.x + 1))
+    if self.getMyLocation().x < 100000000: #-START_LOC.x:
       kick()
-      print("KICKED")
-      self.stopRushingGoalTime = getTime() + int(2 * DIS_BEHIND_BALL/MAX_SPEED*100)
+      print("KICKED at {}".format(getTime()))
+      self.stopRushingGoalTime = getTime() + 50 #int(2 * DIS_BEHIND_BALL/MAX_SPEED*100)
 
 
   def getBehindBall_default(self):
-    predBallLoc = self.ballPrediction(time.time() - self.lastTimeStamp)
+    predBallLoc = self.ballPrediction(time.time() - self.lastVisionUpdatedTimeStamp)
     desiredPoint = MotionSkills.getPointBehindBallXY(predBallLoc.x, predBallLoc.y, home_goal=Point(AWAY_GOAL.x - 0.2, AWAY_GOAL.y))
 
     distFromPoint = distance(self.home1Location, desiredPoint)
 
     desired_theta = math.atan2(AWAY_GOAL.y-self.getMyLocation().y, AWAY_GOAL.x-0.2-self.getMyLocation().x)
     desired_theta = desired_theta % (2*math.pi)
-    error = desired_theta - self.getMyLocation().theta
-    if abs(error) > math.pi:
-      if error > 0:
-        error = error - 2*math.pi
+    theta_error = desired_theta - self.getMyLocation().theta
+    if abs(theta_error) > math.pi:
+      if theta_error > 0:
+        theta_error = theta_error - 2*math.pi
       else:
-        error = error + 2*math.pi
+        theta_error = theta_error + 2*math.pi
 
 #    if (distFromPoint < 0.05 or distance(self.ballLocation, self.home1Location) < 0.1) and (abs(error) < math.pi/8) and (self.home1Location.x > self.ballLocation.x):
-    if (distFromPoint < 0.05) and (abs(error) < math.pi/8) and (self.home1Location.x > self.ballLocation.x):
+    if (distFromPoint < 0.05) and (abs(theta_error) < math.pi/8) and (self.home1Location.x > self.ballLocation.x):
       print("CHANGING TO RUSSIAN")
       self.playState = PlayState.RUSHGOAL
-      self.stopRushingGoalTime = getTime() + 150
+      self.stopRushingGoalTime = getTime() + 50
       self.rushGoal_default()
     elif self.ballLocation.x > AWAY_GOAL and (self.home1Location.x < self.ballLocation.x):
-      if self.home1Location.y < 0:
-        print("IN FRONT OF BALL")
-        self.go_to_point(desiredPoint.x, desiredPoint.y+.2)
-      else:
-        print("IN FRONT OF BALL")
-        self.go_to_point(desiredPoint.x, desiredPoint.y-.2)
+      print("IN FRONT OF BALL")
+      xoffset = .2
+      offset = 0.2 if self.getMyLocation().y < 0 else -0.2
+      self.go_to_point(desiredPoint.x - xoffset, desiredPoint.y + offset)
     elif self.ballLocation.x > AWAY_GOAL:
       print("GOING TO ACTUAL PT BEHIND BALL {}, {}".format(meterToPixel(desiredPoint.x), meterToPixel(desiredPoint.y)))
       #try go to point
@@ -318,7 +322,7 @@ class Vektory:
       self.getBehindBall_baeMAX()
 
   def getBehindBall_baeMAX(self):
-    predBallLoc = self.ballPrediction(time.time() - self.lastTimeStamp)
+    predBallLoc = self.ballPrediction(time.time() - self.lastVisionUpdatedTimeStamp)
     desiredPoint = MotionSkills.getPointBehindBallXYDistance(predBallLoc.x, predBallLoc.y, 1, home_goal=AWAY_GOAL)
     distFromPoint = distance(self.home1Location, desiredPoint)
     if distFromPoint < 0.05:
@@ -424,7 +428,7 @@ class Vektory:
 
   def watchdog(self, scheduler):
     # print("WOOF {}".format(time.time()))
-    if time.time() > self.lastTimeStamp + 0.5:
+    if time.time() > self.lastVisionUpdatedTimeStamp + 0.5:
       print("WIFI TIMED OUT")
       self.sendCommand(0, 0, 0)
       self.oldGameState = self.gameState
@@ -474,8 +478,8 @@ class Vektory:
   def updatePredictions(self):
     # get new timestamp
     newTimeStamp = time.time()
-    sample_period = newTimeStamp - self.lastTimeStamp
-    self.lastTimeStamp = newTimeStamp
+    sample_period = newTimeStamp - self.lastVisionUpdatedTimeStamp
+    self.lastVisionUpdatedTimeStamp = newTimeStamp
 
     # update ball prediction
     ball_vector_x = (self.ballLocation.x - self.lastBallLocation.x) #x distance traveled
@@ -524,7 +528,7 @@ class Vektory:
         return (0.1, 0.05, 1.1, .13, 0.23, MAX_SPEED)
         # return (0.01, 0.05, 2.3, 0.12, 3.89, MAX_SPEED) #.12, 3.89
       elif var == 'theta':
-        return (0.1, 0.05, 1, .25, 0.15, MAX_OMEGA)
+        return (0.1, 0.05, 1, .4, 0.25, MAX_OMEGA)
         # return (0.01, 0.05, 1.7, 0, .7, MAX_OMEGA) #.7
     def sat(x, limit):
       out = max(x, -limit)
@@ -587,9 +591,9 @@ class Vektory:
 
 
     #u is the output velocity in a specified direction (x or y)
-    print("PID", var, error, velocity)
+    # print("PID", var, error, velocity)
 
-    MIN_SPEED_XY = 0.3
+    MIN_SPEED_XY = 0.4
     MIN_SPEED_THETA = 1
     THRESHOLD_XY = 0.1
     THRESHOLD_THETA = 0.5

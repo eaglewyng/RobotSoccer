@@ -183,34 +183,36 @@ class Vektory:
       self.go_to_point(DEFENSIVE_X_COORD, HOME_GOAL.y, lookAtPoint)
 
   def defensiveStrats_augmented(self):
-  	
+    print("theta = {}, ball vel = {}".format(self.getMyLocation().theta, self.ballVelocity.magnitude()))
+    if ((distance(self.getMyLocation(), self.ballLocation) < .1 or self.ballVelocity.magnitude() < .2)
+       and self.getMyLocation().x > self.ballLocation.x
+       and (self.getMyLocation().theta > math.pi/2 and self.getMyLocation().theta < 3*math.pi / 2)):
 
-  	if distance(self.getMyLocation, ballLocation) < .1:
-  		self.playState = PlayState.RUSHGOAL
-  		self.play()
-  	else:
-	  	predBall = self.ballPrediction(1.5)
-	    lookAtPoint = self.ballLocation
-	    if self.twoRobotStrategyEnabled == 1:
-	      if self.robotAssignment == 1:
-	        DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
-	      else:
-	        DEFENSIVE_X_COORD = HOME_GOAL.x - 0.8
-	    else:
-	      DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
+      self.getBehindBall_default()
+    else:
+      print("\nDEFEND AGAIN")
+      predBall = self.ballPrediction(1)
+      lookAtPoint = self.ballLocation
+      if self.twoRobotStrategyEnabled == 1:
+        if self.robotAssignment == 1:
+          DEFENSIVE_X_COORD = HOME_GOAL.x - 0.2
+        else:
+          DEFENSIVE_X_COORD = HOME_GOAL.x - 0.8
+      else:
+        DEFENSIVE_X_COORD = HOME_GOAL.x - 0.3
 
-	    DEFENSIVE_Y_COORD = predBall.y
+      DEFENSIVE_Y_COORD = predBall.y
 
-	    # don't leave the goalie box
-	    DEFENSIVE_Y_COORD = min(DEFENSIVE_Y_COORD, HEIGHT_FIELD_METER/4)
-	    DEFENSIVE_Y_COORD = max(DEFENSIVE_Y_COORD, -HEIGHT_FIELD_METER/4)
+      # don't leave the goalie box
+      DEFENSIVE_Y_COORD = min(DEFENSIVE_Y_COORD, HEIGHT_FIELD_METER/4)
+      DEFENSIVE_Y_COORD = max(DEFENSIVE_Y_COORD, -HEIGHT_FIELD_METER/4)
 
-	    # only guard if the ball isn't past the robot
-	    if self.ballLocation.x < self.home1Location.x:
-	      self.go_to_point(DEFENSIVE_X_COORD, DEFENSIVE_Y_COORD, lookAtPoint)
-	    else:
-	      self.go_to_point(DEFENSIVE_X_COORD, HOME_GOAL.y, lookAtPoint)
-  	
+      # only guard if the ball isn't past the robot
+      if self.ballLocation.x < self.home1Location.x:
+        self.go_to_point(DEFENSIVE_X_COORD, DEFENSIVE_Y_COORD, lookAtPoint)
+      else:
+        self.go_to_point(DEFENSIVE_X_COORD, HOME_GOAL.y, lookAtPoint)
+
   def play(self):
     if self.playState == PlayState.CHECK:
       self.checkState_default()
@@ -270,6 +272,7 @@ class Vektory:
       print("CHANGING TO RUSSIAN")
       self.playState = PlayState.RUSHGOAL
       self.stopRushingGoalTime = getTime() + 150
+      self.rushGoal_default()
     elif self.ballLocation.x > AWAY_GOAL and (self.home1Location.x < self.ballLocation.x):
       if self.home1Location.y < 0:
         print("IN FRONT OF BALL")
@@ -289,9 +292,10 @@ class Vektory:
     # goFullOffensive()
     if (abs(self.ballLocation.x)  > HOME_GOAL.x + .05) and (abs(self.ballLocation.y) < pixelToMeter(67)):
       self.gameState = GameState.START_POSITION
-    elif self.ballLocation.x > WIDTH_FIELD/4 and (self.awayTeam1Location.x > 0 or self.awayTeam2Location.x > 0):
+    #elif self.ballLocation.x > WIDTH_FIELD/4 and (self.awayTeam1Location.x > 0 or self.awayTeam2Location.x > 0):
+    elif self.ballLocation.x > START_LOC.x:
       self.strategy = Strategy.DEFENSIVE
-      self.defensiveStrats()
+      self.defensiveStrats_augmented()
     else:
       self.strategy = Strategy.OFFENSIVE
       self.play()
@@ -514,13 +518,13 @@ class Vektory:
   def pidloop(self, dest_loc, cur_loc, var):
     def getConstants(var):
       if var == 'x':
-        return (0.1, 0.05, 1.1, 0, 0.1, MAX_SPEED)
+        return (0.1, 0.05, 1.1, .13, 0.15, MAX_SPEED)
         # return (0.01, 0.05, 2.3, 0.12, 3.7, MAX_SPEED) #.12, 3.7
       elif var == 'y':
-        return (0.1, 0.05, 1.1, 0, 0.1, MAX_SPEED)
+        return (0.1, 0.05, 1.1, .13, 0.23, MAX_SPEED)
         # return (0.01, 0.05, 2.3, 0.12, 3.89, MAX_SPEED) #.12, 3.89
       elif var == 'theta':
-        return (0.1, 0.05, 1, 0, 0.1, MAX_OMEGA)
+        return (0.1, 0.05, 1, .25, 0.15, MAX_OMEGA)
         # return (0.01, 0.05, 1.7, 0, .7, MAX_OMEGA) #.7
     def sat(x, limit):
       out = max(x, -limit)

@@ -27,14 +27,14 @@ CIRCLE_SPEED = .3
 
 SPEED_ROBOT = .6 # part of deprecated function.
 SPEED_ROTATION = 1.0 # part of deprecated function.
-HOME_GOAL = Point(pixelToMeter(320),0)
-AWAY_GOAL = Point(pixelToMeter(-320),0)
+HOME_GOAL = Point(pixelToMeter(310),0)
+AWAY_GOAL = Point(pixelToMeter(-310),0)
 CENTER = Point()
 START_LOC = Point(pixelToMeter(100), 0)
 
 HEIGHT_FIELD = 430
 HEIGHT_FIELD_METER = pixelToMeter(HEIGHT_FIELD)
-WIDTH_FIELD = 640
+WIDTH_FIELD = int(meterToPixel(HOME_GOAL.x - AWAY_GOAL.x))
 GUI_MARGIN = 10
 
 HEIGHT_GOAL = 100

@@ -47,6 +47,7 @@ class Vektory:
     self.lastBallLocation = Point()
     self.home1Location = RobotLocation()
     self.lastHome1Location = RobotLocation()
+    self.lastAway1Location = RobotLocation()
     self.awayTeam1Location = RobotLocation()
     self.awayTeam2Location = RobotLocation()
     self.clickLocation = Point()
@@ -69,6 +70,9 @@ class Vektory:
     self.lastKickedTimeStamp = -1
     self.ballVelocity = Velocity()
     self.home1Velocity = Velocity()
+
+    self.away1Velocity = Velocity()
+
 
 
 
@@ -142,6 +146,21 @@ class Vektory:
     vektor_y = self.pidloop(y, self.getMyLocation().y, 'y')
     vektor_w = self.pidloop(desired_theta, self.getMyLocation().theta, 'theta')
     print("world vel (x, y, w) = ({}, {}, {})").format(vektor_x, vektor_y, vektor_w)
+
+    # collision avoidance
+    # speed_xy_avoid = .5
+    # if distance(self.home1Prediction(1), self.away1Prediction(1)) < .2:
+    #   print("SLOWING!")
+    #   if vektor_x > 0:
+    #     vektor_x = min(vektor_x, speed_xy_avoid)
+    #   else:
+    #     vektor_x = max(vektor_x, -speed_xy_avoid)
+    #   if vektor_y > 0:
+    #     vektor_y = min(vektor_y, speed_xy_avoid)
+    #   else:
+    #     vektor_y = max(vektor_y, -speed_xy_avoid)
+
+
     self.sendCommand(vektor_x, vektor_y, vektor_w, self.getMyLocation().theta)
 
   def updateLocations(self, data):
@@ -249,7 +268,7 @@ class Vektory:
   def rushGoal_default(self):
     print("RUSHING")
     #self.speed = RUSH_SPEED
-    self.go_to_point(AWAY_GOAL.x - .2, AWAY_GOAL.y, Point(AWAY_GOAL.x - .2, AWAY_GOAL.y))
+    self.go_to_point(AWAY_GOAL.x - .1, AWAY_GOAL.y, Point(AWAY_GOAL.x - .1, AWAY_GOAL.y))
     self.playState = PlayState.GET_BEHIND_BALL
     print("my pos = {}, rush = {}".format(self.getMyLocation().x, AWAY_GOAL.x + 1))
     if self.getMyLocation().x < 100000000: #-START_LOC.x:
@@ -281,12 +300,20 @@ class Vektory:
       self.rushGoal_default()
     elif self.ballLocation.x > AWAY_GOAL and (self.home1Location.x < self.ballLocation.x):
       print("IN FRONT OF BALL")
-      xoffset = .2
-      offset = 0.2 if self.getMyLocation().y < 0 else -0.2
-      self.go_to_point(desiredPoint.x - xoffset, desiredPoint.y + offset)
+      offset = 0.3 if self.getMyLocation().y < 0 else -0.3
+      self.go_to_point(desiredPoint.x, desiredPoint.y + offset)
     elif self.ballLocation.x > AWAY_GOAL:
       print("GOING TO ACTUAL PT BEHIND BALL {}, {}".format(meterToPixel(desiredPoint.x), meterToPixel(desiredPoint.y)))
       #try go to point
+      if desiredPoint.x >= 0:
+        desiredPoint.x = min(desiredPoint.x, WIDTH_FIELD_METER/2 - RADIUS_ROBOT)
+      else:
+        desiredPoint.x = max(desiredPoint.x, -WIDTH_FIELD_METER/2 + RADIUS_ROBOT)
+      if desiredPoint.y >= 0:
+        desiredPoint.y = min(desiredPoint.y, HEIGHT_FIELD_METER/2 - RADIUS_ROBOT)
+      else:
+        desiredPoint.y = max(desiredPoint.y, -HEIGHT_FIELD_METER/2 + RADIUS_ROBOT)
+
       self.go_to_point(desiredPoint.x, desiredPoint.y, lookAtPoint=AWAY_GOAL)
 
   def jarjar_oneRobotStrategy(self):
@@ -507,11 +534,36 @@ class Vektory:
     self.lastHome1Location.x = self.home1Location.x
     self.lastHome1Location.y = self.home1Location.y
 
+    # update robot prediction
+    away1_vector_x = (self.awayTeam1Location.x - self.lastAway1Location.x) #x distance traveled
+    away1_vector_y = (self.awayTeam1Location.y - self.lastAway1Location.y) #y distance traveled
+    away1_mag = math.sqrt(away1_vector_x**2 + away1_vector_y**2)
+    away1_angle = math.atan2(away1_vector_y, away1_vector_x)
+    away1_velocity = away1_mag/sample_period
+
+    self.away1Velocity.x = away1_vector_x / sample_period
+    self.away1Velocity.y = away1_vector_y / sample_period
+
+    self.lastAway1Location.x = self.awayTeam1Location.x
+    self.lastAway1Location.y = self.awayTeam1Location.y
+
   def ballPrediction(self, time_sec):
     #time_sec is saying where will the ball be in 'time_sec' amount of seconds
     ball_new_position_x = self.ballLocation.x + self.ballVelocity.x*time_sec
     ball_new_position_y = self.ballLocation.y + self.ballVelocity.y*time_sec
     return Point(ball_new_position_x, ball_new_position_y)
+
+  def home1Prediction(self, time_sec):
+    #time_sec is saying where will the ball be in 'time_sec' amount of seconds
+    my_new_position_x = self.home1Location.x + self.home1Velocity.x*time_sec
+    my_new_position_y = self.home1Location.y + self.home1Velocity.y*time_sec
+    return Point(my_new_position_x, my_new_position_y)
+
+  def away1Prediction(self, time_sec):
+    #time_sec is saying where will the ball be in 'time_sec' amount of seconds
+    my_new_position_x = self.awayTeam1Location.x + self.away1Velocity.x*time_sec
+    my_new_position_y = self.awayTeam1Location.y + self.away1Velocity.y*time_sec
+    return Point(my_new_position_x, my_new_position_y)
 
   def resetPIDValues(self):
     for key in self.integrator:
@@ -520,6 +572,7 @@ class Vektory:
       self.integrator[key] = 0
 
   def pidloop(self, dest_loc, cur_loc, var):
+
     def getConstants(var):
       if var == 'x':
         return (0.1, 0.05, 1.1, .13, 0.15, MAX_SPEED)
@@ -528,7 +581,7 @@ class Vektory:
         return (0.1, 0.05, 1.1, .13, 0.23, MAX_SPEED)
         # return (0.01, 0.05, 2.3, 0.12, 3.89, MAX_SPEED) #.12, 3.89
       elif var == 'theta':
-        return (0.1, 0.05, 1, .4, 0.25, MAX_OMEGA)
+        return (0.1, 0.05, 1, .3, 0.25, MAX_OMEGA)
         # return (0.01, 0.05, 1.7, 0, .7, MAX_OMEGA) #.7
     def sat(x, limit):
       out = max(x, -limit)

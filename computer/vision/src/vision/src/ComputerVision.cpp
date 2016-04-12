@@ -737,6 +737,19 @@ void changeCamera(const std_msgs::Int32 message) {
   restoreFieldValues();
 }
 
+bool thetaChange(int newTheta, int oldTheta) {
+  int diff = newTheta - oldTheta;
+  if (abs(diff) > 180) {
+    if (diff > 0) {
+      diff = diff - 360;
+    }
+    else {
+      diff = diff + 360;
+    }
+  }
+  return diff;
+}
+
 robot_soccer::locations lowPassFilterLocations(robot_soccer::locations measuredLocations) {
   robot_soccer::locations processedLocations;
 
@@ -778,6 +791,20 @@ robot_soccer::locations lowPassFilterLocations(robot_soccer::locations measuredL
   processedLocations.away2_x     = alpha*oldLocations.away2_x     + (1-alpha)*measuredLocations.away2_x;
   processedLocations.away2_y     = alpha*oldLocations.away2_y     + (1-alpha)*measuredLocations.away2_y;
   processedLocations.away2_theta = alpha*oldLocations.away2_theta + (1-alpha)*measuredLocations.away2_theta;
+
+
+  if (thetaChange(measuredLocations.home1_theta, oldLocations.home1_theta) > 50) {
+    processedLocations.home1_theta = oldLocations.home1_theta;
+  }
+  if (thetaChange(measuredLocations.home2_theta, oldLocations.home2_theta) > 50) {
+    processedLocations.home2_theta = oldLocations.home2_theta;
+  }
+  if (thetaChange(measuredLocations.away1_theta, oldLocations.away1_theta) > 50) {
+    processedLocations.away1_theta = oldLocations.away1_theta;
+  }
+  if (thetaChange(measuredLocations.away2_theta, oldLocations.away2_theta) > 50) {
+    processedLocations.away2_theta = oldLocations.away2_theta;
+  }
 
   processedLocations.header.stamp = measuredLocations.header.stamp;
 

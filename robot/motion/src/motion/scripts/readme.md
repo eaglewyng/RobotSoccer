@@ -43,3 +43,17 @@ to `Vektory.py`. Currently, the following commands are implemented:
 5. `s` stops all robot movement
 6. `c`causes the robot to go to the center
 7. `v` switches the cameras from "home" to "away" and vice versa
+
+###Param.py
+`Param.py` includes many important parameters that are used in other places in our code, including `RADIUS_ROBOT`, 
+`HOME_GOAL`, and `WIDTH_FIELD`. Please make sure the variables are in the form you want them to be in before you
+use them, as some are in pixels and others are in meters. For reference, `Vektory` uses almost purely meter variables.
+
+Some refactoring should probably be done in `Vektory.py` and `Param.py` to make sure that changes in `Param.py` will 
+change all applicable functions in `Vektory.py`, because in our rush to get our robot competing we probably introduced
+some variables in `Vektory.py` that did the exact things that others in `Param.py` did. I will try to change these if I
+can but right now our robot is now dismantled, I am moving to another state, and will not be able to test any code I write. 
+Therefore, it might be better if you, the student reading this, did the refactoring so I don't break anything.
+
+#Contact
+If you have any questions about this code, please contact me at jarjar_robotsoccer THE_AT_SIGN eaglewyng.com and I'll try to help or get one of my team members who knows more about your problem to help.

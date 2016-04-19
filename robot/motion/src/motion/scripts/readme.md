@@ -10,7 +10,7 @@ We apologize in advance for the clutter found in `Vektory.py`; it is caused in p
 Team Vektor Krum (2015) and the many rushed coding sessions we had. A brief explanation is as follows:
 
 1. The `Vektory` init function initializes all states and the kicking mechanism
-2. `go(self)` is called after `Vektory` is initialized, wait for all of the services it needs, and then schedules a run
+2. `go(self)` is called after `Vektory` is initialized, waits for all of the services it needs, and then schedules a run
 through its main execution loop `executionLoop()`
 3. `executionLoop` checks which robot we're assigned to be (the default is robot 1 unless the parameter `robot` is passed in,
 and a two robot strategy will not be enabled unless `self.twoRobotStrategyEnabled` is set to 1. PLEASE NOTE THAT WE NEVER TESTED
@@ -24,6 +24,9 @@ trying to get behind it.
 if the ball is moving over a certain magnitude, and if the ball is slower than the threshold it will call `getBehindBall_default`
 to attempt to get the ball on the other side (and also to prevent stalemates in the case that the other robot is not going after
 the ball). 
+7. `pidloop` is where the motion control happens. I (@eaglewyng) wish I could tell you a bit more about it, but motion control is
+not my expertise. It uses PID controls for x, y, and theta depending on which `var` is passed in, and did a rather good job in our 
+competitions (although it was sometimes fidgity). It could probably use some improvement to make it more precise.
 
 There is also a `watchdog` function that will tell the robot to stop if new location information has not been received within a half
 second. This is to prevent the robot from running into the wall in the event of a communications failure or perhaps damaging the 

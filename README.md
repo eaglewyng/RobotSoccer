@@ -19,5 +19,5 @@ After you have met these prerequisites, here are the steps you should use to run
 Please check out other readme files in this code, specifically the one in `robot/motion/src/motion/scripts` to read more about how this code works.
 
 ##Contact
-If you have any questions about this code, please contact me at jarjar_robotsoccer THE_AT_SIGN eaglewyng.com and I'll try to help or get one of my team members who knows more about your problem to help. 
+If you have any questions about this code, please contact me at `jarjar_robotsoccer THE_AT_SIGN eaglewyng.com` and I'll try to help or get one of my team members who knows more about your problem to help. 
 

@@ -56,4 +56,4 @@ can but right now our robot is now dismantled, I am moving to another state, and
 Therefore, it might be better if you, the student reading this, did the refactoring so I don't break anything.
 
 #Contact
-If you have any questions about this code, please contact me at jarjar_robotsoccer THE_AT_SIGN eaglewyng.com and I'll try to help or get one of my team members who knows more about your problem to help.
+If you have any questions about this code, please contact me at `jarjar_robotsoccer THE_AT_SIGN eaglewyng.com` and I'll try to help or get one of my team members who knows more about your problem to help.

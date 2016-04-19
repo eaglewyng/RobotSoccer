@@ -305,14 +305,20 @@ class Vektory:
     elif self.ballLocation.x > AWAY_GOAL:
       print("GOING TO ACTUAL PT BEHIND BALL {}, {}".format(meterToPixel(desiredPoint.x), meterToPixel(desiredPoint.y)))
       #try go to point
-      if desiredPoint.x >= 0:
-        desiredPoint.x = min(desiredPoint.x, WIDTH_FIELD_METER/2 - RADIUS_ROBOT)
-      else:
-        desiredPoint.x = max(desiredPoint.x, -WIDTH_FIELD_METER/2 + RADIUS_ROBOT)
-      if desiredPoint.y >= 0:
-        desiredPoint.y = min(desiredPoint.y, HEIGHT_FIELD_METER/2 - RADIUS_ROBOT)
-      else:
-        desiredPoint.y = max(desiredPoint.y, -HEIGHT_FIELD_METER/2 + RADIUS_ROBOT)
+      
+      #WARNING: this code caused us problems in the final competitions (unpredictable
+      #behavior when running getBehindBall_default). Its purpose was to make sure we never calculated
+      #a point that would be physically off the field, but apparently we got it terribly
+      #wrong and never had another chance to debug it. Please sanity check this code
+      #and think about it before commenting it back in.
+      # if desiredPoint.x >= 0:
+      #   desiredPoint.x = min(desiredPoint.x, WIDTH_FIELD_METER/2 - RADIUS_ROBOT)
+      # else:
+      #   desiredPoint.x = max(desiredPoint.x, -WIDTH_FIELD_METER/2 + RADIUS_ROBOT)
+      # if desiredPoint.y >= 0:
+      #   desiredPoint.y = min(desiredPoint.y, HEIGHT_FIELD_METER/2 - RADIUS_ROBOT)
+      # else:
+      #   desiredPoint.y = max(desiredPoint.y, -HEIGHT_FIELD_METER/2 + RADIUS_ROBOT)
 
       self.go_to_point(desiredPoint.x, desiredPoint.y, lookAtPoint=AWAY_GOAL)
 
